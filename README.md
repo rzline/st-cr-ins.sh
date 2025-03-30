@@ -1,5 +1,7 @@
 # clewdr-install.sh
 
+- [clewdr地址](https://github.com/Xerxes-2/clewdr)没有它这个就没有这个脚本存在的必要了
+
 - 如何使用
 
 ```
