@@ -13,11 +13,14 @@ wget https://raw.githubusercontent.com/rzline/clewdr-install.sh/refs/heads/main/
 wget https://ghfast.top/https://raw.githubusercontent.com/rzline/clewdr-install.sh/refs/heads/main/install.sh &&chmod +x install.sh &&./install.sh
 ```
 
-把这行命令扔你终端就行，够傻瓜了吧
+- 把这行命令扔你终端就行，够傻瓜了吧
 
-由于还是有点不够傻瓜，特添加启动命令教学
+- 由于还是有点不够傻瓜，特添加启动命令教学
 
 ```
 #这就是执行命令，上面的命令完成了运行这个就可以启动clewdr了
 ./clewdr/clewdr
 ```
+
+- 傻瓜教学再次更新
+这次直接在脚本里添加了是否运行的选项，要是还不行我也没辙
