@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SOFTWARE_NAME="clewdr"    # 软件名称
-GITHUB_REPO="Xerxes-2/clewdr"   # GitHub仓库地址
+SOFTWARE_NAME="clewdr"
+GITHUB_REPO="Xerxes-2/clewdr"
 
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 TARGET_DIR="${SCRIPT_DIR}/clewdr"
@@ -274,14 +274,14 @@ do_install() {
         if [ "$ARCH" = "x86_64" ]; then
             download_filename="$SOFTWARE_NAME-musllinux-x86_64.zip"
         else
-            download_filename="$SOFTWARE_NAME-musllinux-arm64.zip"
+            download_filename="$SOFTWARE_NAME-musllinux-aarch64.zip"
         fi
         echo "使用MUSL版本: $download_filename"
     else
         if [ "$ARCH" = "x86_64" ]; then
             download_filename="$SOFTWARE_NAME-linux-x86_64.zip"
         else
-            download_filename="$SOFTWARE_NAME-linux-arm64.zip"
+            download_filename="$SOFTWARE_NAME-linux-aarch64.zip"
         fi
         echo "使用标准Linux版本: $download_filename"
     fi
