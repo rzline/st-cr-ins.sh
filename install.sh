@@ -6,6 +6,8 @@ SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 TARGET_DIR="${SCRIPT_DIR}/clewdr"
 GH_PROXY="https://ghfast.top/"
 GH_DOWNLOAD_URL_BASE="https://github.com/${GITHUB_REPO}/releases/latest/download"
+GH_API_URL="https://api.github.com/repos/${GITHUB_REPO}/releases/latest"
+VERSION_FILE="${TARGET_DIR}/version.txt"
 PORT=8484
 
 handle_error() {
@@ -116,6 +118,67 @@ install_dependencies() {
     echo "依赖安装完成"
 }
 
+check_version() {
+    echo "检查软件版本..."
+    
+    if [ ! -d "$TARGET_DIR" ]; then
+        echo "未检测到已安装版本，将执行首次安装"
+        return 0
+    fi
+    
+    if [ ! -f "$VERSION_FILE" ]; then
+        echo "未找到版本信息文件，将重新安装最新版本"
+        return 0
+    fi
+    
+    LOCAL_VERSION=$(cat "$VERSION_FILE")
+    echo "当前已安装版本: $LOCAL_VERSION"
+    
+    echo "正在检查最新版本..."
+    
+    local country_code=$(curl -s --connect-timeout 5 ipinfo.io/country)
+    local api_url="$GH_API_URL"
+    local use_proxy=false
+    
+    if [ -n "$country_code" ] && [ "$country_code" = "CN" ]; then
+        echo "检测到中国大陆IP，将使用代理获取版本信息"
+        api_url="${GH_PROXY}${GH_API_URL}"
+        use_proxy=true
+    fi
+    
+    local latest_info=$(curl -s --connect-timeout 10 "$api_url")
+    if [ -z "$latest_info" ]; then
+        echo "无法获取最新版本信息，将保持当前版本"
+        return 1
+    fi
+    
+    LATEST_VERSION=$(echo "$latest_info" | grep -o '"tag_name": *"[^"]*"' | head -n 1 | cut -d'"' -f4)
+    if [ -z "$LATEST_VERSION" ]; then
+        LATEST_VERSION=$(echo "$latest_info" | grep -o '"tag_name":"[^"]*"' | head -n 1 | cut -d'"' -f4)
+    fi
+    
+    if [ -z "$LATEST_VERSION" ]; then
+        echo "解析版本信息失败，将保持当前版本"
+        return 1
+    fi
+    
+    echo "最新版本: $LATEST_VERSION"
+    
+    if [ "$LOCAL_VERSION" = "$LATEST_VERSION" ]; then
+        echo "已是最新版本，无需更新"
+        read -p "是否强制重新安装？(y/N): " force_update
+        if [[ "$force_update" =~ ^[Yy]$ ]]; then
+            echo "将强制重新安装..."
+            return 0
+        else
+            return 1
+        fi
+    else
+        echo "发现新版本，将更新到 $LATEST_VERSION"
+        return 0
+    fi
+}
+
 setup_download_url() {
     echo "检测IP地理位置..."
     local country_code=$(curl -s --connect-timeout 5 ipinfo.io/country)
@@ -203,10 +266,15 @@ download_and_install() {
         chmod +x "$TARGET_DIR/$SOFTWARE_NAME"
     fi
     
+    if [ -n "$LATEST_VERSION" ]; then
+        echo "$LATEST_VERSION" > "$VERSION_FILE"
+        echo "版本信息已保存: $LATEST_VERSION"
+    fi
+    
     echo "安装完成！"
     echo "===================="
     echo "$SOFTWARE_NAME 已安装到: $TARGET_DIR"
-    echo "你可以运行: $TARGET_DIR/$SOFTWARE_NAME"
+    echo "你可以运行: $TARGET_DIR/$SOFTWARE_NAME 来运行程序"
     echo "===================="
 }
 
@@ -296,7 +364,7 @@ run_program() {
             echo "正在启动 $SOFTWARE_NAME..."
             cd "$TARGET_DIR" && ./"$SOFTWARE_NAME"
         else
-            echo "你可以稍后通过运行: $TARGET_DIR/$SOFTWARE_NAME 来启动程序"
+            echo "你可以稍后通过运行: $TARGET_DIR/$SOFTWARE_NAME 来运行程序"
         fi
     else
         echo "警告: 未找到可执行文件 $TARGET_DIR/$SOFTWARE_NAME"
@@ -307,6 +375,12 @@ main() {
     echo "开始安装 $SOFTWARE_NAME..."
     detect_system
     install_dependencies
+    
+    if ! check_version; then
+        echo "已取消安装/更新操作"
+        exit 0
+    fi
+    
     setup_download_url
     download_and_install
     open_port
