@@ -35,3 +35,8 @@ wget https://ghfast.top/https://raw.githubusercontent.com/rzline/clewdr-install.
 1. 对linux服务器尝试支持自动开放8484端口，不保证可用性，可能会因为云服务器厂商的策略失效
 2. 尝试进行版本控制，添加真正的更新逻辑
 3. 添加github action测试版支持
+
+- 25.4.1
+1. 愚人节快乐
+2. 更换版本控制逻辑，~~修复测试版安装~~失败力
+3. 移除了Him
