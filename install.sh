@@ -7,6 +7,7 @@ TARGET_DIR="${SCRIPT_DIR}/clewdr"
 GH_PROXY="https://ghfast.top/"
 GH_DOWNLOAD_URL_BASE="https://github.com/${GITHUB_REPO}/releases/latest/download"
 GH_API_URL="https://api.github.com/repos/${GITHUB_REPO}/releases/latest"
+GH_ACTION_URL="https://github.com/${GITHUB_REPO}/actions/workflows/release.yml"
 VERSION_FILE="${TARGET_DIR}/version.txt"
 PORT=8484
 
@@ -134,54 +135,82 @@ check_version() {
     LOCAL_VERSION=$(cat "$VERSION_FILE")
     echo "当前已安装版本: $LOCAL_VERSION"
     
-    echo "正在检查最新版本..."
-    
-    local country_code=$(curl -s --connect-timeout 5 ipinfo.io/country)
-    local api_url="$GH_API_URL"
-    local use_proxy=false
-    
-    if [ -n "$country_code" ] && [ "$country_code" = "CN" ]; then
-        echo "检测到中国大陆IP，将使用代理获取版本信息"
-        api_url="${GH_PROXY}${GH_API_URL}"
-        use_proxy=true
-    fi
-    
-    local latest_info=$(curl -s --connect-timeout 10 "$api_url")
-    if [ -z "$latest_info" ]; then
-        echo "无法获取最新版本信息，将保持当前版本"
-        return 1
-    fi
-    
-    LATEST_VERSION=$(echo "$latest_info" | grep -o '"tag_name": *"[^"]*"' | head -n 1 | cut -d'"' -f4)
-    if [ -z "$LATEST_VERSION" ]; then
-        LATEST_VERSION=$(echo "$latest_info" | grep -o '"tag_name":"[^"]*"' | head -n 1 | cut -d'"' -f4)
-    fi
-    
-    if [ -z "$LATEST_VERSION" ]; then
-        echo "解析版本信息失败，将保持当前版本"
-        return 1
-    fi
-    
-    echo "最新版本: $LATEST_VERSION"
-    
-    if [ "$LOCAL_VERSION" = "$LATEST_VERSION" ]; then
-        echo "已是最新版本，无需更新"
-        read -p "是否强制重新安装？(y/N): " force_update
-        if [[ "$force_update" =~ ^[Yy]$ ]]; then
-            echo "将强制重新安装..."
-            return 0
-        else
+    if [ "$USE_BETA" != "true" ]; then
+        echo "正在检查最新稳定版本..."
+        
+        local country_code=$(curl -s --connect-timeout 5 ipinfo.io/country)
+        local api_url="$GH_API_URL"
+        local use_proxy=false
+        
+        if [ -n "$country_code" ] && [ "$country_code" = "CN" ]; then
+            echo "检测到中国大陆IP，将使用代理获取版本信息"
+            api_url="${GH_PROXY}${GH_API_URL}"
+            use_proxy=true
+        fi
+        
+        local latest_info=$(curl -s --connect-timeout 10 "$api_url")
+        if [ -z "$latest_info" ]; then
+            echo "无法获取最新版本信息，将保持当前版本"
             return 1
         fi
+        
+        LATEST_VERSION=$(echo "$latest_info" | grep -o '"tag_name": *"[^"]*"' | head -n 1 | cut -d'"' -f4)
+        if [ -z "$LATEST_VERSION" ]; then
+            LATEST_VERSION=$(echo "$latest_info" | grep -o '"tag_name":"[^"]*"' | head -n 1 | cut -d'"' -f4)
+        fi
+        
+        if [ -z "$LATEST_VERSION" ]; then
+            echo "解析版本信息失败，将保持当前版本"
+            return 1
+        fi
+        
+        echo "最新稳定版本: $LATEST_VERSION"
+        
+        if [ "$LOCAL_VERSION" = "$LATEST_VERSION" ]; then
+            echo "已是最新稳定版本，无需更新"
+            read -p "是否强制重新安装？(y/N): " force_update
+            if [[ "$force_update" =~ ^[Yy]$ ]]; then
+                echo "将强制重新安装..."
+                return 0
+            else
+                return 1
+            fi
+        else
+            echo "发现新稳定版本，将更新到 $LATEST_VERSION"
+            return 0
+        fi
     else
-        echo "发现新版本，将更新到 $LATEST_VERSION"
+        echo "已选择安装测试版，将忽略版本检查"
+        LATEST_VERSION="beta-$(date +%Y%m%d)"
         return 0
     fi
 }
 
+select_version() {
+    echo "请选择安装版本类型:"
+    echo "1) 稳定版 (来自GitHub Releases)"
+    echo "2) 测试版 (来自GitHub Actions)"
+    
+    read -p "请选择 [1/2] (默认:1): " version_choice
+    
+    case "$version_choice" in
+        2)
+            USE_BETA=true
+            echo "已选择测试版"
+            ;;
+        *)
+            USE_BETA=false
+            echo "已选择稳定版"
+            ;;
+    esac
+}
+
 setup_download_url() {
+    echo "准备下载链接..."
+    
     echo "检测IP地理位置..."
     local country_code=$(curl -s --connect-timeout 5 ipinfo.io/country)
+    local use_proxy=false
     
     if [ -n "$country_code" ] && [[ "$country_code" =~ ^[A-Z]{2}$ ]]; then
         echo "检测到国家代码: $country_code"
@@ -191,30 +220,44 @@ setup_download_url() {
             read -p "是否禁用GitHub代理？(y/N): " disable_proxy
             
             if [[ "$disable_proxy" =~ ^[Yy]$ ]]; then
-                GH_DOWNLOAD_URL="$GH_DOWNLOAD_URL_BASE"
+                use_proxy=false
                 echo "已禁用GitHub代理，将直连GitHub"
             else
-                GH_DOWNLOAD_URL="${GH_PROXY}${GH_DOWNLOAD_URL_BASE}"
+                use_proxy=true
                 echo "使用GitHub代理: $GH_PROXY"
             fi
         else
-            GH_DOWNLOAD_URL="$GH_DOWNLOAD_URL_BASE"
             echo "非中国大陆IP，不使用GitHub代理"
         fi
     else
         echo "无法检测IP地理位置，不使用GitHub代理"
-        GH_DOWNLOAD_URL="$GH_DOWNLOAD_URL_BASE"
     fi
     
     if [ "$IS_TERMUX" = true ]; then
-        DOWNLOAD_FILENAME="$SOFTWARE_NAME-android-aarch64.zip"
+        FILE_SUFFIX="android-aarch64"
     elif [ "$IS_MUSL" = true ]; then
-        DOWNLOAD_FILENAME="$SOFTWARE_NAME-musllinux-$ARCH.zip"
+        FILE_SUFFIX="musllinux-$ARCH"
     else
-        DOWNLOAD_FILENAME="$SOFTWARE_NAME-linux-$ARCH.zip"
+        FILE_SUFFIX="linux-$ARCH"
     fi
     
-    echo "使用版本: $DOWNLOAD_FILENAME"
+    DOWNLOAD_FILENAME="$SOFTWARE_NAME-$FILE_SUFFIX.zip"
+    echo "文件名格式: $DOWNLOAD_FILENAME"
+    
+    if [ "$USE_BETA" = true ]; then
+        echo "正在获取最新测试版构建..."
+            GH_DOWNLOAD_URL="https://nightly.link/${GITHUB_REPO}/workflows/dev-build/master/${GITHUB_REPO##*/}-${FILE_SUFFIX}.zip"
+        
+        echo "使用测试版下载链接: $GH_DOWNLOAD_URL"
+    else
+        if [ "$use_proxy" = true ]; then
+            GH_DOWNLOAD_URL="${GH_PROXY}${GH_DOWNLOAD_URL_BASE}"
+        else
+            GH_DOWNLOAD_URL="$GH_DOWNLOAD_URL_BASE"
+        fi
+        
+        echo "使用稳定版下载链接: $GH_DOWNLOAD_URL/$DOWNLOAD_FILENAME"
+    fi
 }
 
 download_and_install() {
@@ -226,8 +269,15 @@ download_and_install() {
         echo "目标目录已存在，将覆盖重复文件"
     fi
     
-    local download_url="$GH_DOWNLOAD_URL/$DOWNLOAD_FILENAME"
+    local download_url
     local download_path="$TARGET_DIR/$DOWNLOAD_FILENAME"
+    
+    if [ "$USE_BETA" = true ]; then
+        download_url="$GH_DOWNLOAD_URL"
+    else
+        download_url="$GH_DOWNLOAD_URL/$DOWNLOAD_FILENAME"
+    fi
+    
     echo "下载: $download_url"
     
     local max_retries=3
@@ -274,6 +324,11 @@ download_and_install() {
     echo "安装完成！"
     echo "===================="
     echo "$SOFTWARE_NAME 已安装到: $TARGET_DIR"
+    if [ "$USE_BETA" = true ]; then
+        echo "已安装测试版"
+    else
+        echo "已安装稳定版: $LATEST_VERSION"
+    fi
     echo "你可以运行: $TARGET_DIR/$SOFTWARE_NAME 来运行程序"
     echo "===================="
 }
@@ -298,18 +353,8 @@ open_port() {
         return
     fi
     
-    if command -v firewall-cmd >/dev/null 2>&1; then
-        echo "检测到firewalld服务"
-        if [ "$HAS_SUDO" = true ]; then
-            sudo firewall-cmd --zone=public --add-port=$PORT/tcp --permanent && \
-            sudo firewall-cmd --reload && \
-            echo "已成功开放端口 $PORT (firewalld)"
-        else
-            firewall-cmd --zone=public --add-port=$PORT/tcp --permanent && \
-            firewall-cmd --reload && \
-            echo "已成功开放端口 $PORT (firewalld)"
-        fi
-    elif command -v ufw >/dev/null 2>&1; then
+    
+    if command -v ufw >/dev/null 2>&1; then
         echo "检测到ufw服务"
         if [ "$HAS_SUDO" = true ]; then
             sudo ufw allow $PORT/tcp && \
@@ -319,6 +364,17 @@ open_port() {
             ufw allow $PORT/tcp && \
             ufw reload && \
             echo "已成功开放端口 $PORT (ufw)"
+        fi
+    elif command -v firewall-cmd >/dev/null 2>&1; then
+        echo "检测到firewalld服务"
+        if [ "$HAS_SUDO" = true ]; then
+            sudo firewall-cmd --zone=public --add-port=$PORT/tcp --permanent && \
+            sudo firewall-cmd --reload && \
+            echo "已成功开放端口 $PORT (firewalld)"
+        else
+            firewall-cmd --zone=public --add-port=$PORT/tcp --permanent && \
+            firewall-cmd --reload && \
+            echo "已成功开放端口 $PORT (firewalld)"
         fi
     elif command -v iptables >/dev/null 2>&1; then
         echo "使用iptables开放端口"
@@ -354,7 +410,7 @@ open_port() {
         fi
     fi
     
-    echo "端口 $PORT 配置完成"
+    echo "端口 $PORT 已开放"
 }
 
 run_program() {
@@ -375,12 +431,11 @@ main() {
     echo "开始安装 $SOFTWARE_NAME..."
     detect_system
     install_dependencies
-    
+    select_version
     if ! check_version; then
         echo "已取消安装/更新操作"
         exit 0
     fi
-    
     setup_download_url
     download_and_install
     open_port
