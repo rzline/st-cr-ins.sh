@@ -1,6 +1,6 @@
 # clewdr-install.sh
 
-- [clewdr地址](https://github.com/Xerxes-2/clewdr)没有它这个就没有这个脚本存在的必要了
+- [clewdr地址](https://github.com/Xerxes-2/clewdr)没有它就没有这个脚本存在的必要了
 
 - 如何使用
 
@@ -24,3 +24,9 @@ wget https://ghfast.top/https://raw.githubusercontent.com/rzline/clewdr-install.
 
 - 傻瓜教学再次更新
 这次直接在脚本里添加了是否运行的选项，要是还不行我也没辙
+
+### 更新日志
+
+- 25.3.30 修改二进制文件更新方法，添加是否在脚本执行结束后运行clewdr的选项
+
+- 25.3.31 对linux服务器尝试支持自动开放端口，不保证可用性，可能会因为云服务器厂商的策略失效

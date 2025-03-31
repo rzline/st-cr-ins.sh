@@ -6,6 +6,7 @@ SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 TARGET_DIR="${SCRIPT_DIR}/clewdr"
 GH_PROXY="https://ghfast.top/"
 GH_DOWNLOAD_URL_BASE="https://github.com/${GITHUB_REPO}/releases/latest/download"
+PORT=8484
 
 handle_error() {
     echo "错误：${2}"
@@ -209,6 +210,85 @@ download_and_install() {
     echo "===================="
 }
 
+open_port() {
+    echo "正在尝试开放端口 $PORT..."
+    
+    if [ "$EUID" -ne 0 ] && [ "$IS_TERMUX" = false ]; then
+        echo "注意: 需要使用root权限来开放端口，当前非root用户"
+        read -p "是否尝试使用sudo开放端口？(y/N): " use_sudo
+        if [[ ! "$use_sudo" =~ ^[Yy]$ ]]; then
+            echo "跳过端口开放，请手动开放端口 $PORT"
+            return
+        fi
+        HAS_SUDO=true
+    else
+        HAS_SUDO=false
+    fi
+    
+    if [ "$IS_TERMUX" = true ]; then
+        echo "Termux环境无需手动开放端口，应用将自动使用 $PORT 端口"
+        return
+    fi
+    
+    if command -v firewall-cmd >/dev/null 2>&1; then
+        echo "检测到firewalld服务"
+        if [ "$HAS_SUDO" = true ]; then
+            sudo firewall-cmd --zone=public --add-port=$PORT/tcp --permanent && \
+            sudo firewall-cmd --reload && \
+            echo "已成功开放端口 $PORT (firewalld)"
+        else
+            firewall-cmd --zone=public --add-port=$PORT/tcp --permanent && \
+            firewall-cmd --reload && \
+            echo "已成功开放端口 $PORT (firewalld)"
+        fi
+    elif command -v ufw >/dev/null 2>&1; then
+        echo "检测到ufw服务"
+        if [ "$HAS_SUDO" = true ]; then
+            sudo ufw allow $PORT/tcp && \
+            sudo ufw reload && \
+            echo "已成功开放端口 $PORT (ufw)"
+        else
+            ufw allow $PORT/tcp && \
+            ufw reload && \
+            echo "已成功开放端口 $PORT (ufw)"
+        fi
+    elif command -v iptables >/dev/null 2>&1; then
+        echo "使用iptables开放端口"
+        if [ "$HAS_SUDO" = true ]; then
+            sudo iptables -A INPUT -p tcp --dport $PORT -j ACCEPT && \
+            echo "已使用iptables开放端口 $PORT"
+            echo "注意：该设置可能不会在系统重启后保留，请考虑将其添加到系统启动脚本中"
+        else
+            iptables -A INPUT -p tcp --dport $PORT -j ACCEPT && \
+            echo "已使用iptables开放端口 $PORT"
+            echo "注意：该设置可能不会在系统重启后保留，请考虑将其添加到系统启动脚本中"
+        fi
+    else
+        echo "未检测到支持的防火墙服务，请手动开放端口 $PORT"
+    fi
+    
+    if command -v getenforce >/dev/null 2>&1; then
+        selinux_status=$(getenforce)
+        if [ "$selinux_status" = "Enforcing" ] || [ "$selinux_status" = "Permissive" ]; then
+            echo "检测到SELinux处于活动状态，尝试配置SELinux策略..."
+            if command -v semanage >/dev/null 2>&1; then
+                if [ "$HAS_SUDO" = true ]; then
+                    sudo semanage port -a -t http_port_t -p tcp $PORT || \
+                    echo "SELinux端口配置未成功，可能需要手动配置"
+                else
+                    semanage port -a -t http_port_t -p tcp $PORT || \
+                    echo "SELinux端口配置未成功，可能需要手动配置"
+                fi
+            else
+                echo "未找到semanage命令，无法自动配置SELinux策略"
+                echo "如遇到权限问题，请手动配置SELinux允许程序使用端口 $PORT"
+            fi
+        fi
+    fi
+    
+    echo "端口 $PORT 配置完成"
+}
+
 run_program() {
     if [ -f "$TARGET_DIR/$SOFTWARE_NAME" ]; then
         read -p "是否立即运行 $SOFTWARE_NAME？(y/N): " run_now
@@ -229,6 +309,7 @@ main() {
     install_dependencies
     setup_download_url
     download_and_install
+    open_port
     run_program
 }
 
