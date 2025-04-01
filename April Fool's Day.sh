@@ -12,25 +12,25 @@ VERSION_FILE="${TARGET_DIR}/version.txt"
 PORT=8484
 
 handle_error() {
-    echo "é”™è¯¯ï¼š${2}"
+    echo "üüüüF${2}"
     exit ${1}
 }
 
 detect_system() {
-    echo "æ£€æµ‹ç³»ç»ŸçŽ¯å¢ƒ..."
+    echo "üüüüŒnüüüü‹«..."
     
     if [[ -n "$PREFIX" ]] && [[ "$PREFIX" == *"/com.termux"* ]]; then
         IS_TERMUX=true
-        echo "æ£€æµ‹åˆ°TermuxçŽ¯å¢ƒ"
+        echo "üüüü“žTermuxüü‹«"
     else
         IS_TERMUX=false
         
         if command -v ldd >/dev/null 2>&1 && ldd --version 2>&1 | grep -q -i 'musl'; then
             IS_MUSL=true
-            echo "æ£€æµ‹åˆ°MUSL LinuxçŽ¯å¢ƒ"
+            echo "üüüü“žMUSL Linuxüü‹«"
         else
             IS_MUSL=false
-            echo "æ£€æµ‹åˆ°æ ‡å‡†LinuxçŽ¯å¢ƒ(glibc)"
+            echo "üüüü“žüüyLinuxüü‹«(glibc)"
         fi
     fi
     
@@ -38,13 +38,13 @@ detect_system() {
     case "$ARCH" in
         x86_64|amd64) ARCH="x86_64" ;;
         aarch64|arm64) ARCH="aarch64" ;;
-        armv7l|armv8l) handle_error 1 "æš‚ä¸æ”¯æŒ32ä½ARMæž¶æž„ ($ARCH)" ;;
-        *) handle_error 1 "ä¸æ”¯æŒçš„ç³»ç»Ÿæž¶æž„: $ARCH" ;;
+        armv7l|armv8l) handle_error 1 "üü•sŽxŽ32ˆÊARM‰Ëüü ($ARCH)" ;;
+        *) handle_error 1 "•sŽxŽ“IŒnüü‰Ëüü: $ARCH" ;;
     esac
-    echo "æ£€æµ‹åˆ°æž¶æž„: $ARCH"
+    echo "üüüü“ž‰Ëüü: $ARCH"
     
     if [ "$IS_TERMUX" = true ] && [ "$ARCH" != "aarch64" ]; then
-        handle_error 1 "TermuxçŽ¯å¢ƒä»…æ”¯æŒaarch64æž¶æž„"
+        handle_error 1 "Termuxüü‹«üüŽxŽaarch64‰Ëüü"
     fi
     
     if [ "$IS_TERMUX" = true ]; then
@@ -69,16 +69,16 @@ detect_system() {
         PACKAGE_MANAGER="apk"
         INSTALL_CMD="apk add"
     else
-        echo "è­¦å‘Š: æœªæ£€æµ‹åˆ°æ”¯æŒçš„åŒ…ç®¡ç†å™¨ï¼Œå°†è·³è¿‡ä¾èµ–å®‰è£…"
+        echo "Œx: –¢üüüü“žŽxŽ“I•ïŠÇ—ŠíC«’µüüˆËüüˆÀ‘•"
         PACKAGE_MANAGER="unknown"
         INSTALL_CMD=""
     fi
     
-    [ -n "$PACKAGE_MANAGER" ] && echo "ä½¿ç”¨åŒ…ç®¡ç†å™¨: $PACKAGE_MANAGER"
+    [ -n "$PACKAGE_MANAGER" ] && echo "Žg—p•ïŠÇ—Ší: $PACKAGE_MANAGER"
 }
 
 install_dependencies() {
-    echo "æ£€æŸ¥å¹¶å®‰è£…ä¾èµ–..."
+    echo "üüüü›óˆÀ‘•ˆËüü..."
     local dependencies=("curl" "unzip")
     local missing_deps=()
     
@@ -89,15 +89,15 @@ install_dependencies() {
     done
     
     if [ ${#missing_deps[@]} -eq 0 ]; then
-        echo "æ‰€æœ‰ä¾èµ–å·²å®‰è£…"
+        echo "Š—LˆËüü›ßˆÀ‘•"
         return 0
     fi
     
     if [ "$PACKAGE_MANAGER" = "unknown" ] || [ -z "$INSTALL_CMD" ]; then
-        handle_error 1 "ç¼ºå°‘ä»¥ä¸‹ä¾èµ–ï¼Œä½†æ— æ³•è‡ªåŠ¨å®‰è£…: ${missing_deps[*]}"
+        handle_error 1 "ãž­ˆÈ‰ºˆËüüC’AÙ–@Ž©üüˆÀ‘•: ${missing_deps[*]}"
     fi
     
-    echo "å®‰è£…ç¼ºå¤±çš„ä¾èµ–: ${missing_deps[*]}"
+    echo "ˆÀ‘•ãžŽ¸“IˆËüü: ${missing_deps[*]}"
     
     case "$PACKAGE_MANAGER" in
         apt|pkg) apt update || pkg update ;;
@@ -107,16 +107,16 @@ install_dependencies() {
     esac
     
     if ! $INSTALL_CMD "${missing_deps[@]}"; then
-        handle_error 1 "ä¾èµ–å®‰è£…å¤±è´¥ï¼Œè¯·æ‰‹åŠ¨å®‰è£…: ${missing_deps[*]}"
+        handle_error 1 "ˆËüüˆÀ‘•Ž¸üüCüüŽèüüˆÀ‘•: ${missing_deps[*]}"
     fi
     
     for dep in "${missing_deps[@]}"; do
         if ! command -v "$dep" >/dev/null 2>&1; then
-            handle_error 1 "ä¾èµ– $dep å®‰è£…å¤±è´¥ï¼Œè¯·æ‰‹åŠ¨å®‰è£…"
+            handle_error 1 "ˆËüü $dep ˆÀ‘•Ž¸üüCüüŽèüüˆÀ‘•"
         fi
     done
     
-    echo "ä¾èµ–å®‰è£…å®Œæˆ"
+    echo "ˆËüüˆÀ‘•Š®¬"
 }
 
 get_installed_version() {
@@ -127,53 +127,53 @@ get_installed_version() {
         
         if [ $exit_code -eq 0 ] && [ -n "$version_output" ]; then
             INSTALLED_VERSION=$(echo "$version_output" | grep -o "v[0-9]\+\.[0-9]\+\.[0-9]\+" || echo "$version_output")
-            echo "é€šè¿‡ç¨‹åºå‚æ•°æ£€æµ‹åˆ°ç‰ˆæœ¬: $INSTALLED_VERSION"
+            echo "’Êüü’ö˜ŽQ”üüüü“ž”Å–{: $INSTALLED_VERSION"
             return 0
         fi
     fi
     
     if [ -f "$VERSION_FILE" ]; then
         INSTALLED_VERSION=$(cat "$VERSION_FILE")
-        echo "ä»Žç‰ˆæœ¬æ–‡ä»¶æ£€æµ‹åˆ°ç‰ˆæœ¬: $INSTALLED_VERSION"
+        echo "˜¸”Å–{•¶Œüüüü“ž”Å–{: $INSTALLED_VERSION"
         return 0
     fi
     
     INSTALLED_VERSION=""
-    echo "æœªæ£€æµ‹åˆ°å·²å®‰è£…ç‰ˆæœ¬"
+    echo "–¢üüüü“ž›ßˆÀ‘•”Å–{"
     return 1
 }
 
 check_version() {
-    echo "æ£€æŸ¥è½¯ä»¶ç‰ˆæœ¬..."
+    echo "üüüüüüŒ”Å–{..."
     
     if [ ! -d "$TARGET_DIR" ]; then
-        echo "æœªæ£€æµ‹åˆ°å·²å®‰è£…ç›®å½•ï¼Œå°†æ‰§è¡Œé¦–æ¬¡å®‰è£…"
+        echo "–¢üüüü“ž›ßˆÀ‘•–ÚüüC«üüsŽñŽŸˆÀ‘•"
         return 0
     fi
     
     get_installed_version
     
     if [ "$USE_BETA" = true ]; then
-        echo "å·²é€‰æ‹©å®‰è£…æµ‹è¯•ç‰ˆï¼Œå°†å¿½ç•¥ç‰ˆæœ¬æ£€æŸ¥"
+        echo "›ßüüüüˆÀ‘•üüüü”ÅC«š—ª”Å–{üüüü"
         LATEST_VERSION="beta-$(date +%Y%m%d)"
         return 0
     fi
     
-    echo "æ­£åœ¨æ£€æŸ¥æœ€æ–°ç¨³å®šç‰ˆæœ¬..."
+    echo "³ÝüüüüÅVüü’è”Å–{..."
     
     local country_code=$(curl -s --connect-timeout 5 ipinfo.io/country)
     local api_url="$GH_API_URL"
     local use_proxy=false
     
     if [ -n "$country_code" ] && [ "$country_code" = "CN" ]; then
-        echo "æ£€æµ‹åˆ°ä¸­å›½å¤§é™†IPï¼Œå°†ä½¿ç”¨ä»£ç†èŽ·å–ç‰ˆæœ¬ä¿¡æ¯"
+        echo "üüüü“ž’†‘‘åüüIPC«Žg—p‘ã—üüŽæ”Å–{M‘§"
         api_url="${GH_PROXY}${GH_API_URL}"
         use_proxy=true
     fi
     
     local latest_info=$(curl -s --connect-timeout 10 "$api_url")
     if [ -z "$latest_info" ]; then
-        echo "æ— æ³•èŽ·å–æœ€æ–°ç‰ˆæœ¬ä¿¡æ¯ï¼Œå°†ä¿æŒå½“å‰ç‰ˆæœ¬"
+        echo "Ù–@üüŽæÅV”Å–{M‘§C«•ÛŽ“–‘O”Å–{"
         return 1
     fi
     
@@ -183,77 +183,77 @@ check_version() {
     fi
     
     if [ -z "$LATEST_VERSION" ]; then
-        echo "è§£æžç‰ˆæœ¬ä¿¡æ¯å¤±è´¥ï¼Œå°†ä¿æŒå½“å‰ç‰ˆæœ¬"
+        echo "‰ðÍ”Å–{M‘§Ž¸üüC«•ÛŽ“–‘O”Å–{"
         return 1
     fi
     
-    echo "æœ€æ–°ç¨³å®šç‰ˆæœ¬: $LATEST_VERSION"
+    echo "ÅVüü’è”Å–{: $LATEST_VERSION"
     
     if [ -z "$INSTALLED_VERSION" ]; then
-        echo "æœªæ£€æµ‹åˆ°å·²å®‰è£…ç‰ˆæœ¬ï¼Œå°†å®‰è£…æœ€æ–°ç‰ˆæœ¬"
+        echo "–¢üüüü“ž›ßˆÀ‘•”Å–{C«ˆÀ‘•ÅV”Å–{"
         return 0
     fi
     
     if [ "$INSTALLED_VERSION" = "$LATEST_VERSION" ]; then
-        echo "å·²æ˜¯æœ€æ–°ç¨³å®šç‰ˆæœ¬ï¼Œæ— éœ€æ›´æ–°"
-        read -p "æ˜¯å¦å¼ºåˆ¶é‡æ–°å®‰è£…ï¼Ÿ(y/N): " force_update
+        echo "›ß¥ÅVüü’è”Å–{CÙŽùXV"
+        read -p "¥”Ûüü§dVˆÀ‘•H(y/N): " force_update
         if [[ "$force_update" =~ ^[Yy]$ ]]; then
-            echo "å°†å¼ºåˆ¶é‡æ–°å®‰è£…..."
+            echo "«üü§dVˆÀ‘•..."
             return 0
         else
             return 1
         fi
     else
-        echo "å‘çŽ°æ–°ç¨³å®šç‰ˆæœ¬ï¼Œå°†ä»Ž $INSTALLED_VERSION æ›´æ–°åˆ° $LATEST_VERSION"
+        echo "üüüüVüü’è”Å–{C«˜¸ $INSTALLED_VERSION XV“ž $LATEST_VERSION"
         return 0
     fi
 }
 
 select_version() {
-    echo "è¯·é€‰æ‹©å®‰è£…ç‰ˆæœ¬ç±»åž‹:"
-    echo "1) ç¨³å®šç‰ˆ (æ¥è‡ªGitHub Releases)"
-    echo "2) æµ‹è¯•ç‰ˆ (æ¥è‡ªGitHub Actions)"
+    echo "üüüüüüˆÀ‘•”Å–{üüŒ^:"
+    echo "1) üü’è”Å (—ˆŽ©GitHub Releases)"
+    echo "2) üüüü”Å (—ˆŽ©GitHub Actions)"
     
-    read -p "è¯·é€‰æ‹© [1/2] (é»˜è®¤:1): " version_choice
+    read -p "üüüüüü [1/2] (àÒüü:1): " version_choice
     
     case "$version_choice" in
         2)
             USE_BETA=true
-            echo "å·²é€‰æ‹©æµ‹è¯•ç‰ˆ"
+            echo "›ßüüüüüüüü”Å"
             ;;
         *)
             USE_BETA=false
-            echo "å·²é€‰æ‹©ç¨³å®šç‰ˆ"
+            echo "›ßüüüüüü’è”Å"
             ;;
     esac
 }
 
 setup_download_url() {
-    echo "å‡†å¤‡ä¸‹è½½é“¾æŽ¥..."
+    echo "yüü‰ºüüüüÚ..."
     
-    echo "æ£€æµ‹IPåœ°ç†ä½ç½®..."
+    echo "üüüüIP’n—ˆÊ’u..."
     local country_code=$(curl -s --connect-timeout 5 ipinfo.io/country)
     local use_proxy=false
     
     if [ -n "$country_code" ] && [[ "$country_code" =~ ^[A-Z]{2}$ ]]; then
-        echo "æ£€æµ‹åˆ°å›½å®¶ä»£ç : $country_code"
+        echo "üüüü“ž‘‰Æ‘ãüü: $country_code"
         
         if [ "$country_code" = "CN" ]; then
-            echo "æ£€æµ‹åˆ°ä¸­å›½å¤§é™†IPï¼Œé»˜è®¤å¯ç”¨GitHubä»£ç†: $GH_PROXY"
-            read -p "æ˜¯å¦ç¦ç”¨GitHubä»£ç†ï¼Ÿ(y/N): " disable_proxy
+            echo "üüüü“ž’†‘‘åüüIPCàÒüüüü—pGitHub‘ã—: $GH_PROXY"
+            read -p "¥”Û‹Ö—pGitHub‘ã—H(y/N): " disable_proxy
             
             if [[ "$disable_proxy" =~ ^[Yy]$ ]]; then
                 use_proxy=false
-                echo "å·²ç¦ç”¨GitHubä»£ç†ï¼Œå°†ç›´è¿žGitHub"
+                echo "›ß‹Ö—pGitHub‘ã—C«’¼üüGitHub"
             else
                 use_proxy=true
-                echo "ä½¿ç”¨GitHubä»£ç†: $GH_PROXY"
+                echo "Žg—pGitHub‘ã—: $GH_PROXY"
             fi
         else
-            echo "éžä¸­å›½å¤§é™†IPï¼Œä¸ä½¿ç”¨GitHubä»£ç†"
+            echo "”ñ’†‘‘åüüIPC•sŽg—pGitHub‘ã—"
         fi
     else
-        echo "æ— æ³•æ£€æµ‹IPåœ°ç†ä½ç½®ï¼Œä¸ä½¿ç”¨GitHubä»£ç†"
+        echo "Ù–@üüüüIP’n—ˆÊ’uC•sŽg—pGitHub‘ã—"
     fi
     
     if [ "$IS_TERMUX" = true ]; then
@@ -265,12 +265,12 @@ setup_download_url() {
     fi
     
     DOWNLOAD_FILENAME="$SOFTWARE_NAME-$FILE_SUFFIX.zip"
-    echo "æ–‡ä»¶åæ ¼å¼: $DOWNLOAD_FILENAME"
+    echo "•¶Œ–¼ŠiŽ®: $DOWNLOAD_FILENAME"
     
     if [ "$USE_BETA" = true ]; then
-        echo "æ­£åœ¨èŽ·å–æœ€æ–°æµ‹è¯•ç‰ˆæž„å»º..."
+        echo "³ÝüüŽæÅVüüüü”ÅüüŒš..."
         GH_DOWNLOAD_URL="https://nightly.link/${GITHUB_REPO}/workflows/dev-build/master/${GITHUB_REPO##*/}-${FILE_SUFFIX}.zip"
-        echo "ä½¿ç”¨æµ‹è¯•ç‰ˆä¸‹è½½é“¾æŽ¥: $GH_DOWNLOAD_URL"
+        echo "Žg—püüüü”Å‰ºüüüüÚ: $GH_DOWNLOAD_URL"
     else
         if [ "$use_proxy" = true ]; then
             GH_DOWNLOAD_URL="${GH_PROXY}${GH_DOWNLOAD_URL_BASE}"
@@ -278,17 +278,17 @@ setup_download_url() {
             GH_DOWNLOAD_URL="$GH_DOWNLOAD_URL_BASE"
         fi
     
-        echo "ä½¿ç”¨ç¨³å®šç‰ˆä¸‹è½½é“¾æŽ¥: $GH_DOWNLOAD_URL/$DOWNLOAD_FILENAME"
+        echo "Žg—püü’è”Å‰ºüüüüÚ: $GH_DOWNLOAD_URL/$DOWNLOAD_FILENAME"
     fi
 }
 
 download_and_install() {
-    echo "å‡†å¤‡ç›®æ ‡ç›®å½•..."
+    echo "yüü–Úüü–Úüü..."
     if [ ! -d "$TARGET_DIR" ]; then
         mkdir -p "$TARGET_DIR"
-        echo "åˆ›å»ºç›®æ ‡ç›®å½•: $TARGET_DIR"
+        echo "üüŒš–Úüü–Úüü: $TARGET_DIR"
     else
-        echo "ç›®æ ‡ç›®å½•å·²å­˜åœ¨ï¼Œå°†è¦†ç›–é‡å¤æ–‡ä»¶"
+        echo "–Úüü–Úüü›ß‘¶ÝC«•¢á³düü•¶Œ"
     fi
     
     local download_url
@@ -300,7 +300,7 @@ download_and_install() {
         download_url="$GH_DOWNLOAD_URL/$DOWNLOAD_FILENAME"
     fi
     
-    echo "ä¸‹è½½: $download_url"
+    echo "‰ºüü: $download_url"
     
     local max_retries=3
     local retry_count=0
@@ -314,20 +314,20 @@ download_and_install() {
             fi
         fi
         
-        echo "ä¸‹è½½å¤±è´¥ï¼Œå°è¯•é‡è¯•..."
+        echo "‰ºüüŽ¸üüCüüüüdüü..."
         rm -f "$download_path"
         retry_count=$((retry_count + 1))
         
         if [ $retry_count -lt $max_retries ]; then
-            echo "å°†åœ¨ $wait_time ç§’åŽé‡è¯• ($retry_count/$max_retries)..."
+            echo "«Ý $wait_time •b@düü ($retry_count/$max_retries)..."
             sleep $wait_time
             wait_time=$((wait_time + 5))
         else
-            handle_error 1 "ä¸‹è½½å¤±è´¥: $download_url"
+            handle_error 1 "‰ºüüŽ¸üü: $download_url"
         fi
     done
     
-    echo "è§£åŽ‹æ–‡ä»¶..."
+    echo "‰ðüü•¶Œ..."
     
     local temp_dir="$TARGET_DIR/temp_extract"
     mkdir -p "$temp_dir"
@@ -335,44 +335,44 @@ download_and_install() {
     if ! unzip -o "$download_path" -d "$temp_dir"; then
         rm -f "$download_path"
         rm -rf "$temp_dir"
-        handle_error 1 "è§£åŽ‹å¤±è´¥: $download_path"
+        handle_error 1 "‰ðüüŽ¸üü: $download_path"
     fi
     
     if [ "$USE_BETA" = true ]; then
-        echo "å¤„ç†æµ‹è¯•ç‰ˆæ–‡ä»¶ç»“æž„..."
+        echo "üü—üüüü”Å•¶Œüüüü..."
         
         local beta_build_path="target/${SOFTWARE_NAME}-${FILE_SUFFIX}/release"
         
         if [ -d "$temp_dir/$beta_build_path" ]; then
-            echo "æ‰¾åˆ°æµ‹è¯•ç‰ˆæž„å»ºç›®å½•: $beta_build_path"
+            echo "Q“žüüüü”ÅüüŒš–Úüü: $beta_build_path"
             
             if [ -f "$temp_dir/$beta_build_path/$SOFTWARE_NAME" ]; then
-                echo "ç§»åŠ¨å¯æ‰§è¡Œæ–‡ä»¶åˆ°ç›®æ ‡ç›®å½•"
+                echo "ˆÚüü‰Âüüs•¶Œ“ž–Úüü–Úüü"
                 mv -f "$temp_dir/$beta_build_path/$SOFTWARE_NAME" "$TARGET_DIR/"
                 chmod +x "$TARGET_DIR/$SOFTWARE_NAME"
             else
-                echo "è­¦å‘Š: åœ¨é¢„æœŸè·¯å¾„ä¸­æœªæ‰¾åˆ°å¯æ‰§è¡Œæ–‡ä»¶"
+                echo "Œx: ÝüüŠú˜HŒa’†–¢Q“ž‰Âüüs•¶Œ"
             fi
             
-            echo "ç§»åŠ¨å…¶ä»–æµ‹è¯•ç‰ˆæ–‡ä»¶åˆ°ç›®æ ‡ç›®å½•"
+            echo "ˆÚüü‘´‘¼üüüü”Å•¶Œ“ž–Úüü–Úüü"
             find "$temp_dir/$beta_build_path" -mindepth 1 -maxdepth 1 -type f -not -name "$SOFTWARE_NAME" -exec mv -f {} "$TARGET_DIR/" \;
             
             rm -rf "$temp_dir/$beta_build_path"
         else
-            echo "è­¦å‘Š: æœªæ‰¾åˆ°é¢„æœŸçš„æµ‹è¯•ç‰ˆç›®å½•ç»“æž„: $beta_build_path"
+            echo "Œx: –¢Q“žüüŠú“Iüüüü”Å–Úüüüüüü: $beta_build_path"
             find_result=$(find "$temp_dir" -name "$SOFTWARE_NAME" -type f | head -n 1)
             if [ -n "$find_result" ]; then
-                echo "æ‰¾åˆ°æ›¿ä»£å¯æ‰§è¡Œæ–‡ä»¶: $find_result"
+                echo "Q“ž‘Ö‘ã‰Âüüs•¶Œ: $find_result"
                 mv -f "$find_result" "$TARGET_DIR/"
                 chmod +x "$TARGET_DIR/$SOFTWARE_NAME"
             else
                 rm -f "$download_path"
                 rm -rf "$temp_dir"
-                handle_error 1 "æœªæ‰¾åˆ°å¯æ‰§è¡Œæ–‡ä»¶ï¼Œæµ‹è¯•ç‰ˆå®‰è£…å¤±è´¥"
+                handle_error 1 "–¢Q“ž‰Âüüs•¶ŒCüüüü”ÅˆÀ‘•Ž¸üü"
             fi
         fi
     else
-        echo "å¤„ç†ç¨³å®šç‰ˆæ–‡ä»¶ç»“æž„..."
+        echo "üü—üü’è”Å•¶Œüüüü..."
         cp -rf "$temp_dir"/* "$TARGET_DIR/"
         if [ -f "$TARGET_DIR/$SOFTWARE_NAME" ]; then
             chmod +x "$TARGET_DIR/$SOFTWARE_NAME"
@@ -383,38 +383,38 @@ download_and_install() {
     rm -rf "$temp_dir"
     
     if [ ! -f "$TARGET_DIR/$SOFTWARE_NAME" ]; then
-        handle_error 1 "å®‰è£…å¤±è´¥: æœªæ‰¾åˆ°å¯æ‰§è¡Œæ–‡ä»¶ $TARGET_DIR/$SOFTWARE_NAME"
+        handle_error 1 "ˆÀ‘•Ž¸üü: –¢Q“ž‰Âüüs•¶Œ $TARGET_DIR/$SOFTWARE_NAME"
     fi
     
     if [ "$USE_BETA" = true ]; then
         LATEST_VERSION="beta-$(date +%Y%m%d)"
         echo "$LATEST_VERSION" > "$VERSION_FILE"
-        echo "æµ‹è¯•ç‰ˆä¿¡æ¯å·²ä¿å­˜: $LATEST_VERSION"
+        echo "üüüü”ÅM‘§›ß•Û‘¶: $LATEST_VERSION"
     elif [ -n "$LATEST_VERSION" ]; then
         echo "$LATEST_VERSION" > "$VERSION_FILE"
-        echo "ç¨³å®šç‰ˆä¿¡æ¯å·²ä¿å­˜: $LATEST_VERSION"
+        echo "üü’è”ÅM‘§›ß•Û‘¶: $LATEST_VERSION"
     fi
     
-    echo "å®‰è£…å®Œæˆï¼"
+    echo "ˆÀ‘•Š®¬I"
     echo "===================="
-    echo "$SOFTWARE_NAME å·²å®‰è£…åˆ°: $TARGET_DIR"
+    echo "$SOFTWARE_NAME ›ßˆÀ‘•“ž: $TARGET_DIR"
     if [ "$USE_BETA" = true ]; then
-        echo "å·²å®‰è£…æµ‹è¯•ç‰ˆ (æ—¥æœŸ: $(date +%Y-%m-%d))"
+        echo "›ßˆÀ‘•üüüü”Å (“úŠú: $(date +%Y-%m-%d))"
     else
-        echo "å·²å®‰è£…ç¨³å®šç‰ˆ: $LATEST_VERSION"
+        echo "›ßˆÀ‘•üü’è”Å: $LATEST_VERSION"
     fi
-    echo "ä½ å¯ä»¥è¿è¡Œ: $TARGET_DIR/$SOFTWARE_NAME æ¥è¿è¡Œç¨‹åº"
+    echo "üü‰ÂˆÈüüs: $TARGET_DIR/$SOFTWARE_NAME —ˆüüs’ö˜"
     echo "===================="
 }
 
 open_port() {
-    echo "æ­£åœ¨å°è¯•å¼€æ”¾ç«¯å£ $PORT..."
+    echo "³Ýüüüüüü•ú’[Œû $PORT..."
     
     if [ "$EUID" -ne 0 ] && [ "$IS_TERMUX" = false ]; then
-        echo "æ³¨æ„: éœ€è¦ä½¿ç”¨rootæƒé™æ¥å¼€æ”¾ç«¯å£ï¼Œå½“å‰éžrootç”¨æˆ·"
-        read -p "æ˜¯å¦å°è¯•ä½¿ç”¨sudoå¼€æ”¾ç«¯å£ï¼Ÿ(y/N): " use_sudo
+        echo "’ˆÓ: Žù—vŽg—prootüüŒÀ—ˆüü•ú’[ŒûC“–‘O”ñroot—püü"
+        read -p "¥”ÛüüüüŽg—psudoüü•ú’[ŒûH(y/N): " use_sudo
         if [[ ! "$use_sudo" =~ ^[Yy]$ ]]; then
-            echo "è·³è¿‡ç«¯å£å¼€æ”¾ï¼Œè¯·æ‰‹åŠ¨å¼€æ”¾ç«¯å£ $PORT"
+            echo "’µüü’[Œûüü•úCüüŽèüüüü•ú’[Œû $PORT"
             return
         fi
         HAS_SUDO=true
@@ -423,90 +423,90 @@ open_port() {
     fi
     
     if [ "$IS_TERMUX" = true ]; then
-        echo "TermuxçŽ¯å¢ƒæ— éœ€æ‰‹åŠ¨å¼€æ”¾ç«¯å£ï¼Œåº”ç”¨å°†è‡ªåŠ¨ä½¿ç”¨ $PORT ç«¯å£"
+        echo "Termuxüü‹«ÙŽùŽèüüüü•ú’[ŒûCüü—p«Ž©üüŽg—p $PORT ’[Œû"
         return
     fi
     
     if command -v ufw >/dev/null 2>&1; then
-        echo "æ£€æµ‹åˆ°ufwæœåŠ¡"
+        echo "üüüü“žufw•žüü"
         if [ "$HAS_SUDO" = true ]; then
             sudo ufw allow $PORT/tcp && \
             sudo ufw reload && \
-            echo "å·²æˆåŠŸå¼€æ”¾ç«¯å£ $PORT (ufw)"
+            echo "›ß¬Œ÷üü•ú’[Œû $PORT (ufw)"
         else
             ufw allow $PORT/tcp && \
             ufw reload && \
-            echo "å·²æˆåŠŸå¼€æ”¾ç«¯å£ $PORT (ufw)"
+            echo "›ß¬Œ÷üü•ú’[Œû $PORT (ufw)"
         fi
     elif command -v firewall-cmd >/dev/null 2>&1; then
-        echo "æ£€æµ‹åˆ°firewalldæœåŠ¡"
+        echo "üüüü“žfirewalld•žüü"
         if [ "$HAS_SUDO" = true ]; then
             sudo firewall-cmd --zone=public --add-port=$PORT/tcp --permanent && \
             sudo firewall-cmd --reload && \
-            echo "å·²æˆåŠŸå¼€æ”¾ç«¯å£ $PORT (firewalld)"
+            echo "›ß¬Œ÷üü•ú’[Œû $PORT (firewalld)"
         else
             firewall-cmd --zone=public --add-port=$PORT/tcp --permanent && \
             firewall-cmd --reload && \
-            echo "å·²æˆåŠŸå¼€æ”¾ç«¯å£ $PORT (firewalld)"
+            echo "›ß¬Œ÷üü•ú’[Œû $PORT (firewalld)"
         fi
     elif command -v iptables >/dev/null 2>&1; then
-        echo "ä½¿ç”¨iptableså¼€æ”¾ç«¯å£"
+        echo "Žg—piptablesüü•ú’[Œû"
         if [ "$HAS_SUDO" = true ]; then
             sudo iptables -A INPUT -p tcp --dport $PORT -j ACCEPT && \
-            echo "å·²ä½¿ç”¨iptableså¼€æ”¾ç«¯å£ $PORT"
-            echo "æ³¨æ„ï¼šè¯¥è®¾ç½®å¯èƒ½ä¸ä¼šåœ¨ç³»ç»Ÿé‡å¯åŽä¿ç•™ï¼Œè¯·è€ƒè™‘å°†å…¶æ·»åŠ åˆ°ç³»ç»Ÿå¯åŠ¨è„šæœ¬ä¸­"
+            echo "›ßŽg—piptablesüü•ú’[Œû $PORT"
+            echo "’ˆÓFüüüü’u‰Â”\•s‰ïÝŒnüüdüü@•Û—¯Cüülüü«‘´“Y‰Á“žŒnüüüüüü‹r–{’†"
         else
             iptables -A INPUT -p tcp --dport $PORT -j ACCEPT && \
-            echo "å·²ä½¿ç”¨iptableså¼€æ”¾ç«¯å£ $PORT"
-            echo "æ³¨æ„ï¼šè¯¥è®¾ç½®å¯èƒ½ä¸ä¼šåœ¨ç³»ç»Ÿé‡å¯åŽä¿ç•™ï¼Œè¯·è€ƒè™‘å°†å…¶æ·»åŠ åˆ°ç³»ç»Ÿå¯åŠ¨è„šæœ¬ä¸­"
+            echo "›ßŽg—piptablesüü•ú’[Œû $PORT"
+            echo "’ˆÓFüüüü’u‰Â”\•s‰ïÝŒnüüdüü@•Û—¯Cüülüü«‘´“Y‰Á“žŒnüüüüüü‹r–{’†"
         fi
     else
-        echo "æœªæ£€æµ‹åˆ°æ”¯æŒçš„é˜²ç«å¢™æœåŠ¡ï¼Œè¯·æ‰‹åŠ¨å¼€æ”¾ç«¯å£ $PORT"
+        echo "–¢üüüü“žŽxŽ“I–h‰Îüü•žüüCüüŽèüüüü•ú’[Œû $PORT"
     fi
     
     if command -v getenforce >/dev/null 2>&1; then
         selinux_status=$(getenforce)
         if [ "$selinux_status" = "Enforcing" ] || [ "$selinux_status" = "Permissive" ]; then
-            echo "æ£€æµ‹åˆ°SELinuxå¤„äºŽæ´»åŠ¨çŠ¶æ€ï¼Œå°è¯•é…ç½®SELinuxç­–ç•¥..."
+            echo "üüüü“žSELinuxüü˜°ŠˆüüóüüCüüüü”z’uSELinuxô—ª..."
             if command -v semanage >/dev/null 2>&1; then
                 if [ "$HAS_SUDO" = true ]; then
                     sudo semanage port -a -t http_port_t -p tcp $PORT || \
-                    echo "SELinuxç«¯å£é…ç½®æœªæˆåŠŸï¼Œå¯èƒ½éœ€è¦æ‰‹åŠ¨é…ç½®"
+                    echo "SELinux’[Œû”z’u–¢¬Œ÷C‰Â”\Žù—vŽèüü”z’u"
                 else
                     semanage port -a -t http_port_t -p tcp $PORT || \
-                    echo "SELinuxç«¯å£é…ç½®æœªæˆåŠŸï¼Œå¯èƒ½éœ€è¦æ‰‹åŠ¨é…ç½®"
+                    echo "SELinux’[Œû”z’u–¢¬Œ÷C‰Â”\Žù—vŽèüü”z’u"
                 fi
             else
-                echo "æœªæ‰¾åˆ°semanageå‘½ä»¤ï¼Œæ— æ³•è‡ªåŠ¨é…ç½®SELinuxç­–ç•¥"
-                echo "å¦‚é‡åˆ°æƒé™é—®é¢˜ï¼Œè¯·æ‰‹åŠ¨é…ç½®SELinuxå…è®¸ç¨‹åºä½¿ç”¨ç«¯å£ $PORT"
+                echo "–¢Q“žsemanage–½—ßCÙ–@Ž©üü”z’uSELinuxô—ª"
+                echo "”@‹ö“žüüŒÀüüüüCüüŽèüü”z’uSELinuxˆòüü’ö˜Žg—p’[Œû $PORT"
             fi
         fi
     fi
     
-    echo "ç«¯å£ $PORT å·²å¼€æ”¾"
+    echo "’[Œû $PORT ›ßüü•ú"
 }
 
 run_program() {
     if [ -f "$TARGET_DIR/$SOFTWARE_NAME" ]; then
-        read -p "æ˜¯å¦ç«‹å³è¿è¡Œ $SOFTWARE_NAMEï¼Ÿ(y/N): " run_now
+        read -p "¥”Û—§‘¦üüs $SOFTWARE_NAMEH(y/N): " run_now
         if [[ "$run_now" =~ ^[Yy]$ ]]; then
-            echo "æ­£åœ¨å¯åŠ¨ $SOFTWARE_NAME..."
+            echo "³Ýüüüü $SOFTWARE_NAME..."
             cd "$TARGET_DIR" && ./"$SOFTWARE_NAME"
         else
-            echo "ä½ å¯ä»¥ç¨åŽé€šè¿‡è¿è¡Œ: $TARGET_DIR/$SOFTWARE_NAME æ¥è¿è¡Œç¨‹åº"
+            echo "üü‰ÂˆÈâc@’Êüüüüs: $TARGET_DIR/$SOFTWARE_NAME —ˆüüs’ö˜"
         fi
     else
-        echo "è­¦å‘Š: æœªæ‰¾åˆ°å¯æ‰§è¡Œæ–‡ä»¶ $TARGET_DIR/$SOFTWARE_NAME"
+        echo "Œx: –¢Q“ž‰Âüüs•¶Œ $TARGET_DIR/$SOFTWARE_NAME"
     fi
 }
 
 main() {
-    echo "å¼€å§‹å®‰è£… $SOFTWARE_NAME..."
+    echo "üüŽnˆÀ‘• $SOFTWARE_NAME..."
     detect_system
     install_dependencies
     select_version
     if ! check_version; then
-        echo "å·²å–æ¶ˆå®‰è£…/æ›´æ–°æ“ä½œ"
+        echo "›ßŽæÁˆÀ‘•/XV‘€ì"
         exit 0
     fi
     setup_download_url

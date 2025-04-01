@@ -40,3 +40,6 @@ wget https://ghfast.top/https://raw.githubusercontent.com/rzline/clewdr-install.
 1. 愚人节快乐
 2. 更换版本控制逻辑，~~修复测试版安装~~失败力
 3. 移除了Him
+
+- 25.4.2
+1. 愚人节已过，脚本乱码取消，乱码脚本存档为April Fool's Day.sh
