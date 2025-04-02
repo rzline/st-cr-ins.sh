@@ -1,6 +1,6 @@
 # clewdr-install.sh
 
-- [clewdr地址](https://github.com/Xerxes-2/clewdr)没有它就没有这个脚本存在的必要了
+- [clewdr项目](https://github.com/Xerxes-2/clewdr)没有它就没有这个脚本存在的必要了
 
 - 如何使用
 

@@ -7,7 +7,6 @@ TARGET_DIR="${SCRIPT_DIR}/clewdr"
 GH_PROXY="https://ghfast.top/"
 GH_DOWNLOAD_URL_BASE="https://github.com/${GITHUB_REPO}/releases/latest/download"
 GH_API_URL="https://api.github.com/repos/${GITHUB_REPO}/releases/latest"
-GH_ACTION_URL="https://github.com/${GITHUB_REPO}/actions/workflows/release.yml"
 VERSION_FILE="${TARGET_DIR}/version.txt"
 PORT=8484
 
@@ -79,7 +78,7 @@ detect_system() {
 
 install_dependencies() {
     echo "检查并安装依赖..."
-    local dependencies=("curl" "unzip")
+    local dependencies=("curl" "unzip" "ldd")
     local missing_deps=()
     
     for dep in "${dependencies[@]}"; do
@@ -119,47 +118,23 @@ install_dependencies() {
     echo "依赖安装完成"
 }
 
-get_installed_version() {
-    if [ -f "$TARGET_DIR/$SOFTWARE_NAME" ] && [ -x "$TARGET_DIR/$SOFTWARE_NAME" ]; then
-        local version_output
-        version_output=$("$TARGET_DIR/$SOFTWARE_NAME" -V 2>/dev/null)
-        local exit_code=$?
-        
-        if [ $exit_code -eq 0 ] && [ -n "$version_output" ]; then
-            INSTALLED_VERSION=$(echo "$version_output" | grep -o "v[0-9]\+\.[0-9]\+\.[0-9]\+" || echo "$version_output")
-            echo "通过程序参数检测到版本: $INSTALLED_VERSION"
-            return 0
-        fi
-    fi
-    
-    if [ -f "$VERSION_FILE" ]; then
-        INSTALLED_VERSION=$(cat "$VERSION_FILE")
-        echo "从版本文件检测到版本: $INSTALLED_VERSION"
-        return 0
-    fi
-    
-    INSTALLED_VERSION=""
-    echo "未检测到已安装版本"
-    return 1
-}
-
 check_version() {
     echo "检查软件版本..."
     
     if [ ! -d "$TARGET_DIR" ]; then
-        echo "未检测到已安装目录，将执行首次安装"
+        echo "未检测到已安装版本，将执行首次安装"
         return 0
     fi
     
-    get_installed_version
-    
-    if [ "$USE_BETA" = true ]; then
-        echo "已选择安装测试版，将忽略版本检查"
-        LATEST_VERSION="beta-$(date +%Y%m%d)"
+    if [ ! -f "$VERSION_FILE" ]; then
+        echo "未找到版本信息文件，将重新安装最新版本"
         return 0
     fi
     
-    echo "正在检查最新稳定版本..."
+    LOCAL_VERSION=$(cat "$VERSION_FILE")
+    echo "当前已安装版本: $LOCAL_VERSION"
+    
+    echo "正在检查最新版本..."
     
     local country_code=$(curl -s --connect-timeout 5 ipinfo.io/country)
     local api_url="$GH_API_URL"
@@ -187,15 +162,10 @@ check_version() {
         return 1
     fi
     
-    echo "最新稳定版本: $LATEST_VERSION"
+    echo "最新版本: $LATEST_VERSION"
     
-    if [ -z "$INSTALLED_VERSION" ]; then
-        echo "未检测到已安装版本，将安装最新版本"
-        return 0
-    fi
-    
-    if [ "$INSTALLED_VERSION" = "$LATEST_VERSION" ]; then
-        echo "已是最新稳定版本，无需更新"
+    if [ "$LOCAL_VERSION" = "$LATEST_VERSION" ]; then
+        echo "已是最新版本，无需更新"
         read -p "是否强制重新安装？(y/N): " force_update
         if [[ "$force_update" =~ ^[Yy]$ ]]; then
             echo "将强制重新安装..."
@@ -204,36 +174,14 @@ check_version() {
             return 1
         fi
     else
-        echo "发现新稳定版本，将从 $INSTALLED_VERSION 更新到 $LATEST_VERSION"
+        echo "发现新版本，将更新到 $LATEST_VERSION"
         return 0
     fi
 }
 
-select_version() {
-    echo "请选择安装版本类型:"
-    echo "1) 稳定版 (来自GitHub Releases)"
-    echo "2) 测试版 (来自GitHub Actions)"
-    
-    read -p "请选择 [1/2] (默认:1): " version_choice
-    
-    case "$version_choice" in
-        2)
-            USE_BETA=true
-            echo "已选择测试版"
-            ;;
-        *)
-            USE_BETA=false
-            echo "已选择稳定版"
-            ;;
-    esac
-}
-
 setup_download_url() {
-    echo "准备下载链接..."
-    
     echo "检测IP地理位置..."
     local country_code=$(curl -s --connect-timeout 5 ipinfo.io/country)
-    local use_proxy=false
     
     if [ -n "$country_code" ] && [[ "$country_code" =~ ^[A-Z]{2}$ ]]; then
         echo "检测到国家代码: $country_code"
@@ -243,43 +191,48 @@ setup_download_url() {
             read -p "是否禁用GitHub代理？(y/N): " disable_proxy
             
             if [[ "$disable_proxy" =~ ^[Yy]$ ]]; then
-                use_proxy=false
+                GH_DOWNLOAD_URL="$GH_DOWNLOAD_URL_BASE"
                 echo "已禁用GitHub代理，将直连GitHub"
             else
-                use_proxy=true
+                GH_DOWNLOAD_URL="${GH_PROXY}${GH_DOWNLOAD_URL_BASE}"
                 echo "使用GitHub代理: $GH_PROXY"
             fi
         else
+            GH_DOWNLOAD_URL="$GH_DOWNLOAD_URL_BASE"
             echo "非中国大陆IP，不使用GitHub代理"
         fi
     else
         echo "无法检测IP地理位置，不使用GitHub代理"
+        GH_DOWNLOAD_URL="$GH_DOWNLOAD_URL_BASE"
     fi
     
     if [ "$IS_TERMUX" = true ]; then
-        FILE_SUFFIX="android-aarch64"
+        DOWNLOAD_FILENAME="$SOFTWARE_NAME-android-aarch64.zip"
     elif [ "$IS_MUSL" = true ]; then
-        FILE_SUFFIX="musllinux-$ARCH"
+        DOWNLOAD_FILENAME="$SOFTWARE_NAME-musllinux-$ARCH.zip"
+        echo "检测到musl环境，自动选择musl版本"
     else
-        FILE_SUFFIX="linux-$ARCH"
+        echo "检测到glibc环境"
+        echo "请选择要下载的二进制文件类型:"
+        echo "glibc版本号不足2.38的系统请使用musl版本"
+        echo "glibc版本号可使用 'ldd --version' 命令查看"
+        echo "1) glibc 版本 (标准 Linux 版本，推荐)"
+        echo "2) musl 版本 (适用于 Alpine 等使用 musl 的系统)"
+        read -p "请输入选择 [1-2] (默认1): " libc_choice
+        
+        case "${libc_choice:-1}" in
+            2)
+                DOWNLOAD_FILENAME="$SOFTWARE_NAME-musllinux-$ARCH.zip"
+                echo "已选择 musl 版本"
+                ;;
+            *)
+                DOWNLOAD_FILENAME="$SOFTWARE_NAME-linux-$ARCH.zip"
+                echo "已选择 glibc 版本"
+                ;;
+        esac
     fi
     
-    DOWNLOAD_FILENAME="$SOFTWARE_NAME-$FILE_SUFFIX.zip"
-    echo "文件名格式: $DOWNLOAD_FILENAME"
-    
-    if [ "$USE_BETA" = true ]; then
-        echo "正在获取最新测试版构建..."
-        GH_DOWNLOAD_URL="https://nightly.link/${GITHUB_REPO}/workflows/dev-build/master/${GITHUB_REPO##*/}-${FILE_SUFFIX}.zip"
-        echo "使用测试版下载链接: $GH_DOWNLOAD_URL"
-    else
-        if [ "$use_proxy" = true ]; then
-            GH_DOWNLOAD_URL="${GH_PROXY}${GH_DOWNLOAD_URL_BASE}"
-        else
-            GH_DOWNLOAD_URL="$GH_DOWNLOAD_URL_BASE"
-        fi
-    
-        echo "使用稳定版下载链接: $GH_DOWNLOAD_URL/$DOWNLOAD_FILENAME"
-    fi
+    echo "使用版本: $DOWNLOAD_FILENAME"
 }
 
 download_and_install() {
@@ -291,15 +244,8 @@ download_and_install() {
         echo "目标目录已存在，将覆盖重复文件"
     fi
     
-    local download_url
+    local download_url="$GH_DOWNLOAD_URL/$DOWNLOAD_FILENAME"
     local download_path="$TARGET_DIR/$DOWNLOAD_FILENAME"
-    
-    if [ "$USE_BETA" = true ]; then
-        download_url="$GH_DOWNLOAD_URL"
-    else
-        download_url="$GH_DOWNLOAD_URL/$DOWNLOAD_FILENAME"
-    fi
-    
     echo "下载: $download_url"
     
     local max_retries=3
@@ -328,81 +274,24 @@ download_and_install() {
     done
     
     echo "解压文件..."
-    
-    local temp_dir="$TARGET_DIR/temp_extract"
-    mkdir -p "$temp_dir"
-    
-    if ! unzip -o "$download_path" -d "$temp_dir"; then
+    if ! unzip -o "$download_path" -d "$TARGET_DIR"; then
         rm -f "$download_path"
-        rm -rf "$temp_dir"
         handle_error 1 "解压失败: $download_path"
     fi
     
-    if [ "$USE_BETA" = true ]; then
-        echo "处理测试版文件结构..."
-        
-        local beta_build_path="target/${SOFTWARE_NAME}-${FILE_SUFFIX}/release"
-        
-        if [ -d "$temp_dir/$beta_build_path" ]; then
-            echo "找到测试版构建目录: $beta_build_path"
-            
-            if [ -f "$temp_dir/$beta_build_path/$SOFTWARE_NAME" ]; then
-                echo "移动可执行文件到目标目录"
-                mv -f "$temp_dir/$beta_build_path/$SOFTWARE_NAME" "$TARGET_DIR/"
-                chmod +x "$TARGET_DIR/$SOFTWARE_NAME"
-            else
-                echo "警告: 在预期路径中未找到可执行文件"
-            fi
-            
-            echo "移动其他测试版文件到目标目录"
-            find "$temp_dir/$beta_build_path" -mindepth 1 -maxdepth 1 -type f -not -name "$SOFTWARE_NAME" -exec mv -f {} "$TARGET_DIR/" \;
-            
-            rm -rf "$temp_dir/$beta_build_path"
-        else
-            echo "警告: 未找到预期的测试版目录结构: $beta_build_path"
-            find_result=$(find "$temp_dir" -name "$SOFTWARE_NAME" -type f | head -n 1)
-            if [ -n "$find_result" ]; then
-                echo "找到替代可执行文件: $find_result"
-                mv -f "$find_result" "$TARGET_DIR/"
-                chmod +x "$TARGET_DIR/$SOFTWARE_NAME"
-            else
-                rm -f "$download_path"
-                rm -rf "$temp_dir"
-                handle_error 1 "未找到可执行文件，测试版安装失败"
-            fi
-        fi
-    else
-        echo "处理稳定版文件结构..."
-        cp -rf "$temp_dir"/* "$TARGET_DIR/"
-        if [ -f "$TARGET_DIR/$SOFTWARE_NAME" ]; then
-            chmod +x "$TARGET_DIR/$SOFTWARE_NAME"
-        fi
-    fi
-    
     rm -f "$download_path"
-    rm -rf "$temp_dir"
-    
-    if [ ! -f "$TARGET_DIR/$SOFTWARE_NAME" ]; then
-        handle_error 1 "安装失败: 未找到可执行文件 $TARGET_DIR/$SOFTWARE_NAME"
+    if [ -f "$TARGET_DIR/$SOFTWARE_NAME" ]; then
+        chmod +x "$TARGET_DIR/$SOFTWARE_NAME"
     fi
     
-    if [ "$USE_BETA" = true ]; then
-        LATEST_VERSION="beta-$(date +%Y%m%d)"
+    if [ -n "$LATEST_VERSION" ]; then
         echo "$LATEST_VERSION" > "$VERSION_FILE"
-        echo "测试版信息已保存: $LATEST_VERSION"
-    elif [ -n "$LATEST_VERSION" ]; then
-        echo "$LATEST_VERSION" > "$VERSION_FILE"
-        echo "稳定版信息已保存: $LATEST_VERSION"
+        echo "版本信息已保存: $LATEST_VERSION"
     fi
     
     echo "安装完成！"
     echo "===================="
     echo "$SOFTWARE_NAME 已安装到: $TARGET_DIR"
-    if [ "$USE_BETA" = true ]; then
-        echo "已安装测试版 (日期: $(date +%Y-%m-%d))"
-    else
-        echo "已安装稳定版: $LATEST_VERSION"
-    fi
     echo "你可以运行: $TARGET_DIR/$SOFTWARE_NAME 来运行程序"
     echo "===================="
 }
@@ -427,18 +316,7 @@ open_port() {
         return
     fi
     
-    if command -v ufw >/dev/null 2>&1; then
-        echo "检测到ufw服务"
-        if [ "$HAS_SUDO" = true ]; then
-            sudo ufw allow $PORT/tcp && \
-            sudo ufw reload && \
-            echo "已成功开放端口 $PORT (ufw)"
-        else
-            ufw allow $PORT/tcp && \
-            ufw reload && \
-            echo "已成功开放端口 $PORT (ufw)"
-        fi
-    elif command -v firewall-cmd >/dev/null 2>&1; then
+    if command -v firewall-cmd >/dev/null 2>&1; then
         echo "检测到firewalld服务"
         if [ "$HAS_SUDO" = true ]; then
             sudo firewall-cmd --zone=public --add-port=$PORT/tcp --permanent && \
@@ -448,6 +326,17 @@ open_port() {
             firewall-cmd --zone=public --add-port=$PORT/tcp --permanent && \
             firewall-cmd --reload && \
             echo "已成功开放端口 $PORT (firewalld)"
+        fi
+    elif command -v ufw >/dev/null 2>&1; then
+        echo "检测到ufw服务"
+        if [ "$HAS_SUDO" = true ]; then
+            sudo ufw allow $PORT/tcp && \
+            sudo ufw reload && \
+            echo "已成功开放端口 $PORT (ufw)"
+        else
+            ufw allow $PORT/tcp && \
+            ufw reload && \
+            echo "已成功开放端口 $PORT (ufw)"
         fi
     elif command -v iptables >/dev/null 2>&1; then
         echo "使用iptables开放端口"
@@ -483,7 +372,7 @@ open_port() {
         fi
     fi
     
-    echo "端口 $PORT 已开放"
+    echo "端口 $PORT 配置完成"
 }
 
 run_program() {
@@ -504,11 +393,12 @@ main() {
     echo "开始安装 $SOFTWARE_NAME..."
     detect_system
     install_dependencies
-    select_version
+    
     if ! check_version; then
         echo "已取消安装/更新操作"
         exit 0
     fi
+    
     setup_download_url
     download_and_install
     open_port

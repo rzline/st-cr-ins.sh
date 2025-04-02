@@ -7,7 +7,6 @@ TARGET_DIR="${SCRIPT_DIR}/clewdr"
 GH_PROXY="https://ghfast.top/"
 GH_DOWNLOAD_URL_BASE="https://github.com/${GITHUB_REPO}/releases/latest/download"
 GH_API_URL="https://api.github.com/repos/${GITHUB_REPO}/releases/latest"
-GH_ACTION_URL="https://github.com/${GITHUB_REPO}/actions/workflows/release.yml"
 VERSION_FILE="${TARGET_DIR}/version.txt"
 PORT=8484
 
@@ -79,7 +78,7 @@ detect_system() {
 
 install_dependencies() {
     echo "üüüü›óˆÀ‘•ˆËüü..."
-    local dependencies=("curl" "unzip")
+    local dependencies=("curl" "unzip" "ldd")
     local missing_deps=()
     
     for dep in "${dependencies[@]}"; do
@@ -119,47 +118,23 @@ install_dependencies() {
     echo "ˆËüüˆÀ‘•Š®¬"
 }
 
-get_installed_version() {
-    if [ -f "$TARGET_DIR/$SOFTWARE_NAME" ] && [ -x "$TARGET_DIR/$SOFTWARE_NAME" ]; then
-        local version_output
-        version_output=$("$TARGET_DIR/$SOFTWARE_NAME" -V 2>/dev/null)
-        local exit_code=$?
-        
-        if [ $exit_code -eq 0 ] && [ -n "$version_output" ]; then
-            INSTALLED_VERSION=$(echo "$version_output" | grep -o "v[0-9]\+\.[0-9]\+\.[0-9]\+" || echo "$version_output")
-            echo "’Êüü’ö˜ŽQ”üüüü“ž”Å–{: $INSTALLED_VERSION"
-            return 0
-        fi
-    fi
-    
-    if [ -f "$VERSION_FILE" ]; then
-        INSTALLED_VERSION=$(cat "$VERSION_FILE")
-        echo "˜¸”Å–{•¶Œüüüü“ž”Å–{: $INSTALLED_VERSION"
-        return 0
-    fi
-    
-    INSTALLED_VERSION=""
-    echo "–¢üüüü“ž›ßˆÀ‘•”Å–{"
-    return 1
-}
-
 check_version() {
     echo "üüüüüüŒ”Å–{..."
     
     if [ ! -d "$TARGET_DIR" ]; then
-        echo "–¢üüüü“ž›ßˆÀ‘•–ÚüüC«üüsŽñŽŸˆÀ‘•"
+        echo "–¢üüüü“ž›ßˆÀ‘•”Å–{C«üüsŽñŽŸˆÀ‘•"
         return 0
     fi
     
-    get_installed_version
-    
-    if [ "$USE_BETA" = true ]; then
-        echo "›ßüüüüˆÀ‘•üüüü”ÅC«š—ª”Å–{üüüü"
-        LATEST_VERSION="beta-$(date +%Y%m%d)"
+    if [ ! -f "$VERSION_FILE" ]; then
+        echo "–¢Q“ž”Å–{M‘§•¶ŒC«dVˆÀ‘•ÅV”Å–{"
         return 0
     fi
     
-    echo "³ÝüüüüÅVüü’è”Å–{..."
+    LOCAL_VERSION=$(cat "$VERSION_FILE")
+    echo "“–‘O›ßˆÀ‘•”Å–{: $LOCAL_VERSION"
+    
+    echo "³ÝüüüüÅV”Å–{..."
     
     local country_code=$(curl -s --connect-timeout 5 ipinfo.io/country)
     local api_url="$GH_API_URL"
@@ -187,15 +162,10 @@ check_version() {
         return 1
     fi
     
-    echo "ÅVüü’è”Å–{: $LATEST_VERSION"
+    echo "ÅV”Å–{: $LATEST_VERSION"
     
-    if [ -z "$INSTALLED_VERSION" ]; then
-        echo "–¢üüüü“ž›ßˆÀ‘•”Å–{C«ˆÀ‘•ÅV”Å–{"
-        return 0
-    fi
-    
-    if [ "$INSTALLED_VERSION" = "$LATEST_VERSION" ]; then
-        echo "›ß¥ÅVüü’è”Å–{CÙŽùXV"
+    if [ "$LOCAL_VERSION" = "$LATEST_VERSION" ]; then
+        echo "›ß¥ÅV”Å–{CÙŽùXV"
         read -p "¥”Ûüü§dVˆÀ‘•H(y/N): " force_update
         if [[ "$force_update" =~ ^[Yy]$ ]]; then
             echo "«üü§dVˆÀ‘•..."
@@ -204,36 +174,14 @@ check_version() {
             return 1
         fi
     else
-        echo "üüüüVüü’è”Å–{C«˜¸ $INSTALLED_VERSION XV“ž $LATEST_VERSION"
+        echo "üüüüV”Å–{C«XV“ž $LATEST_VERSION"
         return 0
     fi
 }
 
-select_version() {
-    echo "üüüüüüˆÀ‘•”Å–{üüŒ^:"
-    echo "1) üü’è”Å (—ˆŽ©GitHub Releases)"
-    echo "2) üüüü”Å (—ˆŽ©GitHub Actions)"
-    
-    read -p "üüüüüü [1/2] (àÒüü:1): " version_choice
-    
-    case "$version_choice" in
-        2)
-            USE_BETA=true
-            echo "›ßüüüüüüüü”Å"
-            ;;
-        *)
-            USE_BETA=false
-            echo "›ßüüüüüü’è”Å"
-            ;;
-    esac
-}
-
 setup_download_url() {
-    echo "yüü‰ºüüüüÚ..."
-    
     echo "üüüüIP’n—ˆÊ’u..."
     local country_code=$(curl -s --connect-timeout 5 ipinfo.io/country)
-    local use_proxy=false
     
     if [ -n "$country_code" ] && [[ "$country_code" =~ ^[A-Z]{2}$ ]]; then
         echo "üüüü“ž‘‰Æ‘ãüü: $country_code"
@@ -243,43 +191,48 @@ setup_download_url() {
             read -p "¥”Û‹Ö—pGitHub‘ã—H(y/N): " disable_proxy
             
             if [[ "$disable_proxy" =~ ^[Yy]$ ]]; then
-                use_proxy=false
+                GH_DOWNLOAD_URL="$GH_DOWNLOAD_URL_BASE"
                 echo "›ß‹Ö—pGitHub‘ã—C«’¼üüGitHub"
             else
-                use_proxy=true
+                GH_DOWNLOAD_URL="${GH_PROXY}${GH_DOWNLOAD_URL_BASE}"
                 echo "Žg—pGitHub‘ã—: $GH_PROXY"
             fi
         else
+            GH_DOWNLOAD_URL="$GH_DOWNLOAD_URL_BASE"
             echo "”ñ’†‘‘åüüIPC•sŽg—pGitHub‘ã—"
         fi
     else
         echo "Ù–@üüüüIP’n—ˆÊ’uC•sŽg—pGitHub‘ã—"
+        GH_DOWNLOAD_URL="$GH_DOWNLOAD_URL_BASE"
     fi
     
     if [ "$IS_TERMUX" = true ]; then
-        FILE_SUFFIX="android-aarch64"
+        DOWNLOAD_FILENAME="$SOFTWARE_NAME-android-aarch64.zip"
     elif [ "$IS_MUSL" = true ]; then
-        FILE_SUFFIX="musllinux-$ARCH"
+        DOWNLOAD_FILENAME="$SOFTWARE_NAME-musllinux-$ARCH.zip"
+        echo "üüüü“žmuslüü‹«CŽ©üüüüüümusl”Å–{"
     else
-        FILE_SUFFIX="linux-$ARCH"
+        echo "üüüü“žglibcüü‹«"
+        echo "üüüüüü—v‰ºüü“I“ñüü§•¶ŒüüŒ^:"
+        echo "glibc”Å–{†•s‘«2.38“IŒnüüüüŽg—pmusl”Å–{"
+        echo "glibc”Å–{†‰ÂŽg—p 'ldd --version' –½—ßüüŠÅ"
+        echo "1) glibc ”Å–{ (üüy Linux ”Å–{C„ä¦)"
+        echo "2) musl ”Å–{ (üü—p˜° Alpine “™Žg—p musl “IŒnüü)"
+        read -p "üüüü“üüüüü [1-2] (àÒüü1): " libc_choice
+        
+        case "${libc_choice:-1}" in
+            2)
+                DOWNLOAD_FILENAME="$SOFTWARE_NAME-musllinux-$ARCH.zip"
+                echo "›ßüüüü musl ”Å–{"
+                ;;
+            *)
+                DOWNLOAD_FILENAME="$SOFTWARE_NAME-linux-$ARCH.zip"
+                echo "›ßüüüü glibc ”Å–{"
+                ;;
+        esac
     fi
     
-    DOWNLOAD_FILENAME="$SOFTWARE_NAME-$FILE_SUFFIX.zip"
-    echo "•¶Œ–¼ŠiŽ®: $DOWNLOAD_FILENAME"
-    
-    if [ "$USE_BETA" = true ]; then
-        echo "³ÝüüŽæÅVüüüü”ÅüüŒš..."
-        GH_DOWNLOAD_URL="https://nightly.link/${GITHUB_REPO}/workflows/dev-build/master/${GITHUB_REPO##*/}-${FILE_SUFFIX}.zip"
-        echo "Žg—püüüü”Å‰ºüüüüÚ: $GH_DOWNLOAD_URL"
-    else
-        if [ "$use_proxy" = true ]; then
-            GH_DOWNLOAD_URL="${GH_PROXY}${GH_DOWNLOAD_URL_BASE}"
-        else
-            GH_DOWNLOAD_URL="$GH_DOWNLOAD_URL_BASE"
-        fi
-    
-        echo "Žg—püü’è”Å‰ºüüüüÚ: $GH_DOWNLOAD_URL/$DOWNLOAD_FILENAME"
-    fi
+    echo "Žg—p”Å–{: $DOWNLOAD_FILENAME"
 }
 
 download_and_install() {
@@ -291,15 +244,8 @@ download_and_install() {
         echo "–Úüü–Úüü›ß‘¶ÝC«•¢á³düü•¶Œ"
     fi
     
-    local download_url
+    local download_url="$GH_DOWNLOAD_URL/$DOWNLOAD_FILENAME"
     local download_path="$TARGET_DIR/$DOWNLOAD_FILENAME"
-    
-    if [ "$USE_BETA" = true ]; then
-        download_url="$GH_DOWNLOAD_URL"
-    else
-        download_url="$GH_DOWNLOAD_URL/$DOWNLOAD_FILENAME"
-    fi
-    
     echo "‰ºüü: $download_url"
     
     local max_retries=3
@@ -328,81 +274,24 @@ download_and_install() {
     done
     
     echo "‰ðüü•¶Œ..."
-    
-    local temp_dir="$TARGET_DIR/temp_extract"
-    mkdir -p "$temp_dir"
-    
-    if ! unzip -o "$download_path" -d "$temp_dir"; then
+    if ! unzip -o "$download_path" -d "$TARGET_DIR"; then
         rm -f "$download_path"
-        rm -rf "$temp_dir"
         handle_error 1 "‰ðüüŽ¸üü: $download_path"
     fi
     
-    if [ "$USE_BETA" = true ]; then
-        echo "üü—üüüü”Å•¶Œüüüü..."
-        
-        local beta_build_path="target/${SOFTWARE_NAME}-${FILE_SUFFIX}/release"
-        
-        if [ -d "$temp_dir/$beta_build_path" ]; then
-            echo "Q“žüüüü”ÅüüŒš–Úüü: $beta_build_path"
-            
-            if [ -f "$temp_dir/$beta_build_path/$SOFTWARE_NAME" ]; then
-                echo "ˆÚüü‰Âüüs•¶Œ“ž–Úüü–Úüü"
-                mv -f "$temp_dir/$beta_build_path/$SOFTWARE_NAME" "$TARGET_DIR/"
-                chmod +x "$TARGET_DIR/$SOFTWARE_NAME"
-            else
-                echo "Œx: ÝüüŠú˜HŒa’†–¢Q“ž‰Âüüs•¶Œ"
-            fi
-            
-            echo "ˆÚüü‘´‘¼üüüü”Å•¶Œ“ž–Úüü–Úüü"
-            find "$temp_dir/$beta_build_path" -mindepth 1 -maxdepth 1 -type f -not -name "$SOFTWARE_NAME" -exec mv -f {} "$TARGET_DIR/" \;
-            
-            rm -rf "$temp_dir/$beta_build_path"
-        else
-            echo "Œx: –¢Q“žüüŠú“Iüüüü”Å–Úüüüüüü: $beta_build_path"
-            find_result=$(find "$temp_dir" -name "$SOFTWARE_NAME" -type f | head -n 1)
-            if [ -n "$find_result" ]; then
-                echo "Q“ž‘Ö‘ã‰Âüüs•¶Œ: $find_result"
-                mv -f "$find_result" "$TARGET_DIR/"
-                chmod +x "$TARGET_DIR/$SOFTWARE_NAME"
-            else
-                rm -f "$download_path"
-                rm -rf "$temp_dir"
-                handle_error 1 "–¢Q“ž‰Âüüs•¶ŒCüüüü”ÅˆÀ‘•Ž¸üü"
-            fi
-        fi
-    else
-        echo "üü—üü’è”Å•¶Œüüüü..."
-        cp -rf "$temp_dir"/* "$TARGET_DIR/"
-        if [ -f "$TARGET_DIR/$SOFTWARE_NAME" ]; then
-            chmod +x "$TARGET_DIR/$SOFTWARE_NAME"
-        fi
-    fi
-    
     rm -f "$download_path"
-    rm -rf "$temp_dir"
-    
-    if [ ! -f "$TARGET_DIR/$SOFTWARE_NAME" ]; then
-        handle_error 1 "ˆÀ‘•Ž¸üü: –¢Q“ž‰Âüüs•¶Œ $TARGET_DIR/$SOFTWARE_NAME"
+    if [ -f "$TARGET_DIR/$SOFTWARE_NAME" ]; then
+        chmod +x "$TARGET_DIR/$SOFTWARE_NAME"
     fi
     
-    if [ "$USE_BETA" = true ]; then
-        LATEST_VERSION="beta-$(date +%Y%m%d)"
+    if [ -n "$LATEST_VERSION" ]; then
         echo "$LATEST_VERSION" > "$VERSION_FILE"
-        echo "üüüü”ÅM‘§›ß•Û‘¶: $LATEST_VERSION"
-    elif [ -n "$LATEST_VERSION" ]; then
-        echo "$LATEST_VERSION" > "$VERSION_FILE"
-        echo "üü’è”ÅM‘§›ß•Û‘¶: $LATEST_VERSION"
+        echo "”Å–{M‘§›ß•Û‘¶: $LATEST_VERSION"
     fi
     
     echo "ˆÀ‘•Š®¬I"
     echo "===================="
     echo "$SOFTWARE_NAME ›ßˆÀ‘•“ž: $TARGET_DIR"
-    if [ "$USE_BETA" = true ]; then
-        echo "›ßˆÀ‘•üüüü”Å (“úŠú: $(date +%Y-%m-%d))"
-    else
-        echo "›ßˆÀ‘•üü’è”Å: $LATEST_VERSION"
-    fi
     echo "üü‰ÂˆÈüüs: $TARGET_DIR/$SOFTWARE_NAME —ˆüüs’ö˜"
     echo "===================="
 }
@@ -427,18 +316,7 @@ open_port() {
         return
     fi
     
-    if command -v ufw >/dev/null 2>&1; then
-        echo "üüüü“žufw•žüü"
-        if [ "$HAS_SUDO" = true ]; then
-            sudo ufw allow $PORT/tcp && \
-            sudo ufw reload && \
-            echo "›ß¬Œ÷üü•ú’[Œû $PORT (ufw)"
-        else
-            ufw allow $PORT/tcp && \
-            ufw reload && \
-            echo "›ß¬Œ÷üü•ú’[Œû $PORT (ufw)"
-        fi
-    elif command -v firewall-cmd >/dev/null 2>&1; then
+    if command -v firewall-cmd >/dev/null 2>&1; then
         echo "üüüü“žfirewalld•žüü"
         if [ "$HAS_SUDO" = true ]; then
             sudo firewall-cmd --zone=public --add-port=$PORT/tcp --permanent && \
@@ -448,6 +326,17 @@ open_port() {
             firewall-cmd --zone=public --add-port=$PORT/tcp --permanent && \
             firewall-cmd --reload && \
             echo "›ß¬Œ÷üü•ú’[Œû $PORT (firewalld)"
+        fi
+    elif command -v ufw >/dev/null 2>&1; then
+        echo "üüüü“žufw•žüü"
+        if [ "$HAS_SUDO" = true ]; then
+            sudo ufw allow $PORT/tcp && \
+            sudo ufw reload && \
+            echo "›ß¬Œ÷üü•ú’[Œû $PORT (ufw)"
+        else
+            ufw allow $PORT/tcp && \
+            ufw reload && \
+            echo "›ß¬Œ÷üü•ú’[Œû $PORT (ufw)"
         fi
     elif command -v iptables >/dev/null 2>&1; then
         echo "Žg—piptablesüü•ú’[Œû"
@@ -483,7 +372,7 @@ open_port() {
         fi
     fi
     
-    echo "’[Œû $PORT ›ßüü•ú"
+    echo "’[Œû $PORT ”z’uŠ®¬"
 }
 
 run_program() {
@@ -504,11 +393,12 @@ main() {
     echo "üüŽnˆÀ‘• $SOFTWARE_NAME..."
     detect_system
     install_dependencies
-    select_version
+    
     if ! check_version; then
         echo "›ßŽæÁˆÀ‘•/XV‘€ì"
         exit 0
     fi
+    
     setup_download_url
     download_and_install
     open_port
