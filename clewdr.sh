@@ -372,7 +372,7 @@ install_sillytavern() {
         read -rp "是否禁用 Git 代理进行 clone/pull？(y/N): " disable_git_proxy
         if [[ ! "$disable_git_proxy" =~ ^[Yy]$ ]]; then
             use_git_proxy=true
-            git_cmd="git clone ${GH_PROXY}/${SILLY_TAVERN_REPO}"
+            SILLY_TAVERN_REPO="${GH_PROXY}/${SILLY_TAVERN_REPO}"
             echo "已启用 Git 代理。"
         else
             echo "已禁用 Git 代理，将直连 GitHub。"
@@ -451,7 +451,7 @@ install_sillytavern() {
     fi
 
     if [ "$needs_clone" = true ]; then
-        echo "准备使用 '${git_cmd} clone' 克隆SillyTavern到 '$SILLY_TAVERN_DIR'..."
+        echo "准备使用 '${git_cmd} clone --depth 1 --branch release "$SILLY_TAVERN_REPO" "$SILLY_TAVERN_DIR"' 克隆SillyTavern到 '$SILLY_TAVERN_DIR'..."
         cd "$SCRIPT_DIR" || { echo "错误：无法切换回脚本目录 '$SCRIPT_DIR'" >&2; return 1; }
 
         if ${git_cmd} clone --depth 1 --branch release "$SILLY_TAVERN_REPO" "$SILLY_TAVERN_DIR"; then
@@ -459,7 +459,7 @@ install_sillytavern() {
             proceed_npm_install=true
         else
              local clone_exit_code=$?
-             echo "错误：'${git_cmd} clone' 失败 (退出码: $clone_exit_code)" >&2
+             echo "错误：'${git_cmd} clone --depth 1 --branch release "$SILLY_TAVERN_REPO" "$SILLY_TAVERN_DIR"' 失败 (退出码: $clone_exit_code)" >&2
              echo "可能原因：目标目录已存在且非空、网络问题、Git 代理配置错误、权限不足。" >&2
               if [ "$use_git_proxy" = true ]; then
                      echo "      (已尝试使用代理: $GH_PROXY)"
