@@ -1,5 +1,6 @@
 #!/bin/bash
 
+SOFTWARE_NAME="clewdr"
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 TARGET_DIR="${SCRIPT_DIR}/clewdr"
 CONFIG_FILE="${TARGET_DIR}/config.toml"
@@ -69,10 +70,10 @@ check_version() {
     local LOCAL_VERSION=""
     LATEST_VERSION=""
 
-    if [ ! -d "$TARGET_DIR" ]; then
-        echo "未检测到clewdr安装目录 '$TARGET_DIR'，将执行首次安装。"
-        return 0
-    fi
+    #if [ ! -d "$TARGET_DIR" ]; then
+    #    echo "未检测到clewdr安装目录 '$TARGET_DIR'，将执行首次安装。"
+    #    return 0
+    #fi
 
     if [ -f "$VERSION_FILE" ]; then
         LOCAL_VERSION=$(cat "$VERSION_FILE")
@@ -80,9 +81,24 @@ check_version() {
     else
         echo "未找到clewdr版本信息文件 '$VERSION_FILE'。"
         if [ -x "$TARGET_DIR/$SOFTWARE_NAME" ]; then
-             echo "找到clewdr可执行文件，但版本未知。建议执行安装/更新以同步版本信息。"
+            echo "找到clewdr可执行文件，尝试提取版本号..."
+            # 执行可执行文件并提取版本号
+            VERSION_OUTPUT=$("$TARGET_DIR/$SOFTWARE_NAME" --version 2>/dev/null)
+            if [ $? -eq 0 ]; then
+                # 用正则提取纯数字版本号（支持 x.y.z 格式）
+                EXTRACTED_VERSION=$(echo "$VERSION_OUTPUT" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+                if [ -n "$EXTRACTED_VERSION" ]; then
+                    LOCAL_VERSION="v$EXTRACTED_VERSION"
+                    echo "从可执行文件提取到版本号: $LOCAL_VERSION"
+                else
+                    echo "警告：无法从版本输出中解析版本号（输出内容：$VERSION_OUTPUT）" >&2
+                fi
+            else
+                echo "警告：执行 '$TARGET_DIR/$SOFTWARE_NAME --version' 失败" >&2
+            fi
+            echo "建议执行安装/更新以同步版本信息。"
         else
-             echo "未找到clewdr可执行文件。"
+            echo "未找到clewdr可执行文件。"
         fi
         echo "将执行安装/更新。"
     fi
@@ -356,7 +372,7 @@ install_sillytavern() {
         read -rp "是否禁用 Git 代理进行 clone/pull？(y/N): " disable_git_proxy
         if [[ ! "$disable_git_proxy" =~ ^[Yy]$ ]]; then
             use_git_proxy=true
-            git_cmd="git clone ${GH_PROXY}/${SILLY_TAVERN_REPO}"
+            SILLY_TAVERN_REPO="${GH_PROXY}/${SILLY_TAVERN_REPO}"
             echo "已启用 Git 代理。"
         else
             echo "已禁用 Git 代理，将直连 GitHub。"
@@ -435,7 +451,7 @@ install_sillytavern() {
     fi
 
     if [ "$needs_clone" = true ]; then
-        echo "准备使用 '${git_cmd} clone' 克隆SillyTavern到 '$SILLY_TAVERN_DIR'..."
+        echo "准备使用 '${git_cmd} clone --depth 1 --branch release "$SILLY_TAVERN_REPO" "$SILLY_TAVERN_DIR"' 克隆SillyTavern到 '$SILLY_TAVERN_DIR'..."
         cd "$SCRIPT_DIR" || { echo "错误：无法切换回脚本目录 '$SCRIPT_DIR'" >&2; return 1; }
 
         if ${git_cmd} clone --depth 1 --branch release "$SILLY_TAVERN_REPO" "$SILLY_TAVERN_DIR"; then
@@ -443,7 +459,7 @@ install_sillytavern() {
             proceed_npm_install=true
         else
              local clone_exit_code=$?
-             echo "错误：'${git_cmd} clone' 失败 (退出码: $clone_exit_code)" >&2
+             echo "错误：'${git_cmd} clone --depth 1 --branch release "$SILLY_TAVERN_REPO" "$SILLY_TAVERN_DIR"' 失败 (退出码: $clone_exit_code)" >&2
              echo "可能原因：目标目录已存在且非空、网络问题、Git 代理配置错误、权限不足。" >&2
               if [ "$use_git_proxy" = true ]; then
                      echo "      (已尝试使用代理: $GH_PROXY)"
@@ -519,9 +535,9 @@ function clewdrSettings {
     elif [ -d "$TARGET_DIR" ] && [ -x "$main_executable" ]; then
         executable_found=true
         local exec_version_output
-        exec_version_output=$("$main_executable" -v 2>&1)
-        if [ $? -eq 0 ] && [[ "$exec_version_output" == *"clewdr v"* ]]; then
-             current_version=$(echo "$exec_version_output" | grep -o 'v[0-9.]*')
+        exec_version_output=$("$main_executable" --version 2>&1)
+        if [ $? -eq 0 ] && [[ "$exec_version_output" == *"clewdr"* ]]; then
+             current_version=$(echo "$exec_version_output" | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')
              current_version="$current_version (无版本文件)"
         else
              current_version="未知 (执行 '$SOFTWARE_NAME -v' 失败或格式不对, 无版本文件)"
