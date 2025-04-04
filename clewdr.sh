@@ -356,7 +356,7 @@ install_sillytavern() {
         read -rp "是否禁用 Git 代理进行 clone/pull？(y/N): " disable_git_proxy
         if [[ ! "$disable_git_proxy" =~ ^[Yy]$ ]]; then
             use_git_proxy=true
-            git_cmd="git -c http.proxy=${GH_PROXY} -c https.proxy=${GH_PROXY}"
+            git_cmd="git clone ${GH_PROXY}/${SILLY_TAVERN_REPO}"
             echo "已启用 Git 代理。"
         else
             echo "已禁用 Git 代理，将直连 GitHub。"
