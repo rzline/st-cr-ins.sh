@@ -81,9 +81,24 @@ check_version() {
     else
         echo "未找到clewdr版本信息文件 '$VERSION_FILE'。"
         if [ -x "$TARGET_DIR/$SOFTWARE_NAME" ]; then
-             echo "找到clewdr可执行文件，但版本未知。建议执行安装/更新以同步版本信息。"
+            echo "找到clewdr可执行文件，尝试提取版本号..."
+            # 执行可执行文件并提取版本号
+            VERSION_OUTPUT=$("$TARGET_DIR/$SOFTWARE_NAME" --version 2>/dev/null)
+            if [ $? -eq 0 ]; then
+                # 用正则提取纯数字版本号（支持 x.y.z 格式）
+                EXTRACTED_VERSION=$(echo "$VERSION_OUTPUT" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+                if [ -n "$EXTRACTED_VERSION" ]; then
+                    LOCAL_VERSION="v$EXTRACTED_VERSION"
+                    echo "从可执行文件提取到版本号: $LOCAL_VERSION"
+                else
+                    echo "警告：无法从版本输出中解析版本号（输出内容：$VERSION_OUTPUT）" >&2
+                fi
+            else
+                echo "警告：执行 '$TARGET_DIR/$SOFTWARE_NAME --version' 失败" >&2
+            fi
+            echo "建议执行安装/更新以同步版本信息。"
         else
-             echo "未找到clewdr可执行文件。"
+            echo "未找到clewdr可执行文件。"
         fi
         echo "将执行安装/更新。"
     fi
