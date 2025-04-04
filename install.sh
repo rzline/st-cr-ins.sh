@@ -45,77 +45,6 @@ detect_system() {
     if [ "$IS_TERMUX" = true ] && [ "$ARCH" != "aarch64" ]; then
         handle_error 1 "Termux环境仅支持aarch64架构"
     fi
-    
-    if [ "$IS_TERMUX" = true ]; then
-        PACKAGE_MANAGER="pkg"
-        INSTALL_CMD="pkg install -y"
-    elif command -v apt >/dev/null 2>&1; then
-        PACKAGE_MANAGER="apt"
-        INSTALL_CMD="apt install -y"
-    elif command -v dnf >/dev/null 2>&1; then
-        PACKAGE_MANAGER="dnf"
-        INSTALL_CMD="dnf install -y"
-    elif command -v yum >/dev/null 2>&1; then
-        PACKAGE_MANAGER="yum"
-        INSTALL_CMD="yum install -y"
-    elif command -v pacman >/dev/null 2>&1; then
-        PACKAGE_MANAGER="pacman"
-        INSTALL_CMD="pacman -S --noconfirm"
-    elif command -v zypper >/dev/null 2>&1; then
-        PACKAGE_MANAGER="zypper"
-        INSTALL_CMD="zypper install -y"
-    elif command -v apk >/dev/null 2>&1; then
-        PACKAGE_MANAGER="apk"
-        INSTALL_CMD="apk add"
-    else
-        echo "警告: 未检测到支持的包管理器，将跳过依赖安装"
-        PACKAGE_MANAGER="unknown"
-        INSTALL_CMD=""
-    fi
-    
-    [ -n "$PACKAGE_MANAGER" ] && echo "使用包管理器: $PACKAGE_MANAGER"
-}
-
-install_dependencies() {
-    echo "检查并安装依赖..."
-    local dependencies=("curl" "unzip" "ldd")
-    local missing_deps=()
-    
-    for dep in "${dependencies[@]}"; do
-        if ! command -v "$dep" >/dev/null 2>&1; then
-            missing_deps+=("$dep")
-        fi
-    done
-    
-    if [ ${#missing_deps[@]} -eq 0 ]; then
-        echo "所有依赖已安装"
-        return 0
-    fi
-    
-    if [ "$PACKAGE_MANAGER" = "unknown" ] || [ -z "$INSTALL_CMD" ]; then
-        handle_error 1 "缺少以下依赖，但无法自动安装: ${missing_deps[*]}"
-    fi
-    
-    echo "安装缺失的依赖: ${missing_deps[*]}"
-    
-    case "$PACKAGE_MANAGER" in
-        apt|pkg) apt update || pkg update ;;
-        pacman) pacman -Sy ;;
-        zypper) zypper refresh ;;
-        apk) apk update ;;
-    esac
-    
-    if ! $INSTALL_CMD "${missing_deps[@]}"; then
-        handle_error 1 "依赖安装失败，请手动安装: ${missing_deps[*]}"
-    fi
-    
-    for dep in "${missing_deps[@]}"; do
-        if ! command -v "$dep" >/dev/null 2>&1; then
-            handle_error 1 "依赖 $dep 安装失败，请手动安装"
-        fi
-    done
-    
-    echo "依赖安装完成"
 }
 
 check_version() {
@@ -392,13 +321,10 @@ run_program() {
 main() {
     echo "开始安装 $SOFTWARE_NAME..."
     detect_system
-    install_dependencies
-    
     if ! check_version; then
         echo "已取消安装/更新操作"
         exit 0
     fi
-    
     setup_download_url
     download_and_install
     open_port

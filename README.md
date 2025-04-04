@@ -4,13 +4,18 @@
 
 - 如何使用
 
+依赖安装
 ```
-wget https://raw.githubusercontent.com/rzline/clewdr-install.sh/refs/heads/main/install.sh &&chmod +x install.sh &&./install.sh
+apt install curl unzip ldd -y
 ```
 
+运行命令
+```
+curl -O https://raw.githubusercontent.com/rzline/clewdr-install.sh/main/clewdr.sh &&chmod +x install.sh &&./clewdr.sh &&rm clewdr.sh
+```
 ```
 #中国大陆特供版
-wget https://ghfast.top/https://raw.githubusercontent.com/rzline/clewdr-install.sh/refs/heads/main/install.sh &&chmod +x install.sh &&./install.sh
+curl -O https://ghfast.top/https://raw.githubusercontent.com/rzline/clewdr-install.sh/main/clewdr.sh &&chmod +x clewdr.sh &&./clewdr.sh &&rm clewdr.sh
 ```
 
 - 把这行命令扔你终端就行，够傻瓜了吧
@@ -43,3 +48,8 @@ wget https://ghfast.top/https://raw.githubusercontent.com/rzline/clewdr-install.
 
 - 25.4.2
 1. 愚人节已过，脚本乱码取消，乱码脚本存档为April Fool's Day.sh
+2. 删除action版本下载
+3. glibc用户现在可以下载musl二进制文件，解决debian系无法运行clewdr的问题
+
+- 25.4.4
+1. 重大更新，正式成为功能性一键脚本，目前支持一键启动，一键更新，cookie添加，端口修改四个功能
