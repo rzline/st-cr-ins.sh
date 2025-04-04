@@ -11,11 +11,11 @@ apt update &&apt install curl unzip git nodejs -y
 
 运行命令
 ```
-curl -O https://raw.githubusercontent.com/rzline/clewdr-install.sh/main/clewdr.sh &&chmod +x clewdr.sh &&./clewdr.sh &&rm clewdr.sh
+curl -O https://raw.githubusercontent.com/rzline/clewdr-install.sh/main/install.sh &&chmod +x install.sh &&./install.sh &&rm install.sh
 ```
 ```
 #中国大陆特供版
-curl -O https://ghfast.top/https://raw.githubusercontent.com/rzline/clewdr-install.sh/main/clewdr.sh &&chmod +x clewdr.sh &&./clewdr.sh &&rm clewdr.sh
+curl -O https://ghfast.top/https://raw.githubusercontent.com/rzline/clewdr-install.sh/main/install.sh &&chmod +x install.sh &&./install.sh &&rm install.sh
 ```
 
 - 把这行命令扔你终端就行，够傻瓜了吧
@@ -52,5 +52,6 @@ curl -O https://ghfast.top/https://raw.githubusercontent.com/rzline/clewdr-insta
 3. glibc用户现在可以下载musl二进制文件，解决debian系无法运行clewdr的问题
 
 - 25.4.4
-1. 重大更新，正式成为功能性一键脚本，目前支持一键启动，一键更新，cookie添加，端口修改四个功能
-2. 添加酒馆安装功能
+1. ~~重大更新，正式成为功能性一键脚本，目前支持一键启动，一键更新，cookie添加，端口修改四个功能~~
+2. ~~添加酒馆安装功能~~
+3. 有问题，紧急回退
