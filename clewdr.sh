@@ -1,5 +1,6 @@
 #!/bin/bash
 
+SOFTWARE_NAME="clewdr"
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 TARGET_DIR="${SCRIPT_DIR}/clewdr"
 CONFIG_FILE="${TARGET_DIR}/config.toml"
@@ -519,9 +520,9 @@ function clewdrSettings {
     elif [ -d "$TARGET_DIR" ] && [ -x "$main_executable" ]; then
         executable_found=true
         local exec_version_output
-        exec_version_output=$("$main_executable" -v 2>&1)
-        if [ $? -eq 0 ] && [[ "$exec_version_output" == *"clewdr v"* ]]; then
-             current_version=$(echo "$exec_version_output" | grep -o 'v[0-9.]*')
+        exec_version_output=$("$main_executable" --version 2>&1)
+        if [ $? -eq 0 ] && [[ "$exec_version_output" == *"clewdr"* ]]; then
+             current_version=$(echo "$exec_version_output" | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')
              current_version="$current_version (无版本文件)"
         else
              current_version="未知 (执行 '$SOFTWARE_NAME -v' 失败或格式不对, 无版本文件)"
