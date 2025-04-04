@@ -6,7 +6,7 @@
 
 依赖安装
 ```
-apt install curl unzip ldd -y
+apt update &&apt install curl unzip git nodejs -y
 ```
 
 运行命令
