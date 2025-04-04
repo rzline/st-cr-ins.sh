@@ -438,7 +438,7 @@ install_sillytavern() {
         echo "准备使用 '${git_cmd} clone' 克隆SillyTavern到 '$SILLY_TAVERN_DIR'..."
         cd "$SCRIPT_DIR" || { echo "错误：无法切换回脚本目录 '$SCRIPT_DIR'" >&2; return 1; }
 
-        if ${git_cmd} clone --depth 1 --branch main "$SILLY_TAVERN_REPO" "$SILLY_TAVERN_DIR"; then
+        if ${git_cmd} clone --depth 1 --branch release "$SILLY_TAVERN_REPO" "$SILLY_TAVERN_DIR"; then
             echo "克隆成功。"
             proceed_npm_install=true
         else

@@ -11,11 +11,11 @@ apt update &&apt install curl unzip git nodejs -y
 
 运行命令
 ```
-curl -O https://raw.githubusercontent.com/rzline/clewdr-install.sh/main/install.sh &&chmod +x install.sh &&./install.sh &&rm install.sh
+curl -O https://raw.githubusercontent.com/rzline/clewdr-install.sh/main/clewdr.sh &&chmod +x clewdr.sh &&./clewdr.sh &&rm clewdr.sh
 ```
 ```
 #中国大陆特供版
-curl -O https://ghfast.top/https://raw.githubusercontent.com/rzline/clewdr-install.sh/main/install.sh &&chmod +x install.sh &&./install.sh &&rm install.sh
+curl -O https://ghfast.top/https://raw.githubusercontent.com/rzline/clewdr-install.sh/main/clewdr.sh &&chmod +x clewdr.sh &&./clewdr.sh &&rm clewdr.sh
 ```
 
 - 把这行命令扔你终端就行，够傻瓜了吧
@@ -55,3 +55,4 @@ curl -O https://ghfast.top/https://raw.githubusercontent.com/rzline/clewdr-insta
 1. ~~重大更新，正式成为功能性一键脚本，目前支持一键启动，一键更新，cookie添加，端口修改四个功能~~
 2. ~~添加酒馆安装功能~~
 3. 有问题，紧急回退
+4. 尝试修复，请多测试
