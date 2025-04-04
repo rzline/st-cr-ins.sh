@@ -70,10 +70,10 @@ check_version() {
     local LOCAL_VERSION=""
     LATEST_VERSION=""
 
-    if [ ! -d "$TARGET_DIR" ]; then
-        echo "未检测到clewdr安装目录 '$TARGET_DIR'，将执行首次安装。"
-        return 0
-    fi
+    #if [ ! -d "$TARGET_DIR" ]; then
+    #    echo "未检测到clewdr安装目录 '$TARGET_DIR'，将执行首次安装。"
+    #    return 0
+    #fi
 
     if [ -f "$VERSION_FILE" ]; then
         LOCAL_VERSION=$(cat "$VERSION_FILE")
