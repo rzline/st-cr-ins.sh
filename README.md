@@ -11,7 +11,7 @@ apt update &&apt install curl unzip git nodejs -y
 
 运行命令
 ```
-curl -O https://raw.githubusercontent.com/rzline/clewdr-install.sh/main/clewdr.sh &&chmod +x install.sh &&./clewdr.sh &&rm clewdr.sh
+curl -O https://raw.githubusercontent.com/rzline/clewdr-install.sh/main/clewdr.sh &&chmod +x clewdr.sh &&./clewdr.sh &&rm clewdr.sh
 ```
 ```
 #中国大陆特供版
