@@ -23,6 +23,9 @@ curl -O -C - https://ghfast.top/https://raw.githubusercontent.com/rzline/st-cr-i
 
 ## 更新日志
 
+### 25.4.11
+1. 修复添加cookie功能
+
 ### 25.4.8
 1. 重构脚本，精简大量重复逻辑，显著减小体积
 2. 优化cookie添加方式，兼容更多版本的配置文件

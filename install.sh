@@ -1,44 +1,26 @@
 #!/bin/bash
+
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 TARGET_DIR="${SCRIPT_DIR}/clewdr"
 CONFIG_FILE="${TARGET_DIR}/config.toml"
+COOKIES_FILE="${SCRIPT_DIR}/cookies.txt"
 GITHUB_PROXY="https://ghfast.top"
 GITHUB_REPO="Xerxes-2/clewdr"
 DOWNLOAD_BASE="https://github.com/${GITHUB_REPO}/releases/latest/download"
 SILLY_TAVERN_DIR="${SCRIPT_DIR}/SillyTavern"
 SILLY_TAVERN_REPO="https://github.com/SillyTavern/SillyTavern.git"
 
-apply_cookies() {
-    COOKIES_FILE="${SCRIPT_DIR}/cookies.txt"
+if [ "$1" == "cookies.txt" ]; then
     if [ ! -f "$COOKIES_FILE" ]; then
-        echo "未找到 cookies.txt 文件。"
+        echo "错误：未找到 $COOKIES_FILE 文件。"
         exit 1
     fi
-    if [ ! -f "$CONFIG_FILE" ]; then
-        echo "配置文件不存在，创建目录并新建配置文件：$CONFIG_FILE"
-        mkdir -p "$TARGET_DIR" || exit 1
-        touch "$CONFIG_FILE"
-    fi
-    echo "正在固化 Cookie 到配置文件 $CONFIG_FILE 中……"
-    while IFS= read -r line; do
-        cookie=$(echo "$line" | grep -E -o 'sessionKey=(sk-ant-sid[a-zA-Z0-9_-]+|[a-zA-Z0-9+/_-]{100,})' | head -n1)
-        if [ -n "$cookie" ]; then
-            tail -c1 "$CONFIG_FILE" | read -r _ || echo "" >> "$CONFIG_FILE"
-            printf "\n[[cookie_array]]\ncookie = \"%s\"\n" "$cookie" >> "$CONFIG_FILE"
-            echo "已固化 Cookie: $cookie"
-        fi
-    done < "$COOKIES_FILE"
-    rm -f "$COOKIES_FILE"
-    echo "Cookie 固化完成，cookies.txt 已删除。"
-}
-
-if [ "$1" == "cookies.txt" ]; then
-    apply_cookies
     if [ -x "${TARGET_DIR}/clewdr" ]; then
-        echo "启动 clewdr..."
-        cd "$TARGET_DIR" && ./clewdr
+        echo "使用 $COOKIES_FILE 启动 clewdr..."
+        cd "$TARGET_DIR" && ./clewdr ../cookies.txt || echo "启动 clewdr 失败。"
+        cd "$SCRIPT_DIR"
     else
-        echo "错误：未找到 clewdr 可执行文件。"
+        echo "错误：未找到 clewdr 可执行文件。请先运行脚本进行安装或更新。"
     fi
     exit 0
 fi
@@ -171,7 +153,7 @@ setup_download_url() {
 download_and_install() {
     [ -z "$URL_PREFIX" ] && { handle_error 1 "下载 URL 前缀未配置"; return 1; }
     [ -z "$FILENAME" ] && { handle_error 1 "下载文件名未配置"; return 1; }
-    
+
     mkdir -p "$TARGET_DIR" || { handle_error 1 "创建目标目录失败: ${TARGET_DIR}"; return 1; }
     local download_url="${URL_PREFIX}/${FILENAME}"
     local download_path="${TARGET_DIR}/${FILENAME}"
@@ -244,7 +226,7 @@ main_menu() {
     if [ -x "${TARGET_DIR}/clewdr" ]; then
         local_ver=$("${TARGET_DIR}/clewdr" -V 2>/dev/null | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')
     fi
-    
+
     local st_status="未安装"
     [ -d "$SILLY_TAVERN_DIR" ] && { [ -d "$SILLY_TAVERN_DIR/.git" ] && st_status="已安装 (Git)" || st_status="已安装"; }
 
@@ -271,9 +253,9 @@ main_menu() {
 
     case $opt in
         1)
-            echo "启动 ClewdR..."
+            echo "启动 ClewdR (默认配置)..."
             if [ -x "${TARGET_DIR}/clewdr" ]; then
-                cd "$TARGET_DIR" && ./clewdr && cd "$SCRIPT_DIR"
+                cd "$TARGET_DIR" && ./clewdr && cd "$SCRIPT_DIR" || echo "启动 clewdr 失败。"
             else
                 echo "错误：未找到可执行文件，请先安装更新。"
             fi
@@ -286,56 +268,73 @@ main_menu() {
             download_and_install || return 1
             ;;
         3)
-            echo "配置文件内容："
-            [ -f "$CONFIG_FILE" ] && cat "$CONFIG_FILE" || echo "配置文件不存在。"
+            echo "配置文件内容 (${CONFIG_FILE})："
+            if [ -f "$CONFIG_FILE" ]; then
+                cat "$CONFIG_FILE"
+            else
+                 echo "配置文件不存在。当使用 cookies.txt 首次启动或无配置文件启动时，clewdr 会自动创建。"
+            fi
             ;;
         4)
-            command -v vim &>/dev/null && vim "$CONFIG_FILE" || { command -v nano &>/dev/null && nano "$CONFIG_FILE"; }
+            if [ -f "$CONFIG_FILE" ]; then
+                command -v vim &>/dev/null && vim "$CONFIG_FILE" || { command -v nano &>/dev/null && nano "$CONFIG_FILE" || echo "未找到 vim 或 nano 编辑器。"; }
+            else
+                 echo "配置文件不存在。当使用 cookies.txt 首次启动或无配置文件启动时，clewdr 会自动创建。"
+            fi
             ;;
         5)
-            COOKIES_FILE="${SCRIPT_DIR}/cookies.txt"
             rm -f "$COOKIES_FILE" 2>/dev/null
-            touch "$COOKIES_FILE"
-            echo "请粘贴 Cookie 内容（结束输入请按 Ctrl+D 程序会自动运行保存Cookie）："
+            touch "$COOKIES_FILE" || { echo "错误：无法创建 $COOKIES_FILE"; break; }
+            echo "请粘贴 Cookie 内容（一行一个，包含 sessionKey=... ），输入完成后按 Ctrl+D 结束："
             count=0
             while IFS= read -r line; do
-                cookie=$(echo "$line" | grep -E -o 'sessionKey=(sk-ant-sid[a-zA-Z0-9_-]+|[a-zA-Z0-9+/_-]{100,})' | head -n1)
-                if [ -n "$cookie" ]; then
-                    echo "$cookie" >> "$COOKIES_FILE"
-                    echo "已缓存 Cookie: $cookie"
+                cookie_line=$(echo "$line" | grep -E -o 'sessionKey=(sk-ant-sid[a-zA-Z0-9_-]+|[a-zA-Z0-9+/_-]{100,})')
+                if [ -n "$cookie_line" ]; then
+                    echo "$cookie_line" >> "$COOKIES_FILE"
+                    echo "已缓存有效 Cookie 行: $cookie_line"
                     count=$((count+1))
                 else
-                    [ -n "$line" ] && echo "未找到有效 Cookie。"
+                    [ -n "$line" ] && echo "忽略无效输入行: $line"
                 fi
             done
-            echo "共缓存 $count 个 Cookie 至 $COOKIES_FILE"
-            echo "自动固化 Cookie 并启动 clewdr…"
-            apply_cookies
+            echo "-----------------------------------------"
+            echo "共缓存 $count 个有效 Cookie 到 $COOKIES_FILE"
+
             if [ -x "${TARGET_DIR}/clewdr" ]; then
-                cd "$TARGET_DIR" && ./clewdr && cd "$SCRIPT_DIR"
+                if [ -s "$COOKIES_FILE" ]; then
+                    echo "现在尝试使用 $COOKIES_FILE 启动 clewdr..."
+                    echo "clewdr 会读取此文件并自动处理配置。"
+                    cd "$TARGET_DIR" && ./clewdr ../cookies.txt && cd "$SCRIPT_DIR" || echo "启动 clewdr 失败。"
+                else
+                    echo "未缓存任何有效 Cookie，未启动 clewdr。"
+                    rm -f "$COOKIES_FILE"
+                fi
             else
-                echo "错误：未找到 clewdr 可执行文件。"
+                echo "错误：未找到 clewdr 可执行文件。Cookie 已保存至 $COOKIES_FILE，请先安装或更新 clewdr 后手动执行："
+                echo "cd ${TARGET_DIR} && ./clewdr ../cookies.txt"
             fi
             ;;
         6)
             if [ ! -f "$CONFIG_FILE" ]; then
-                echo "错误：配置文件不存在。"
+                echo "错误：配置文件 ${CONFIG_FILE} 不存在。"
+                echo "请先至少运行一次 clewdr (例如通过选项5添加Cookie并启动，或直接启动) 以生成默认配置文件。"
             else
                 local cur_port
                 cur_port=$(grep -E '^\s*port\s*=' "$CONFIG_FILE" | sed -E 's/^\s*port\s*=\s*([0-9]+).*/\1/' | head -n1)
-                echo "当前端口: ${cur_port:-未设置}"
-                read -rp "是否修改？(y/N): " mod
+                echo "当前配置文件中的端口: ${cur_port:-未设置 (将使用默认值 8080)}"
+                read -rp "是否修改配置文件中的端口设置？(y/N): " mod
                 if [[ "$mod" =~ ^[Yy]$ ]]; then
-                    read -rp "新端口 [1-65535]: " np
+                    read -rp "请输入新的监听端口 [1-65535]: " np
                     if [[ "$np" =~ ^[0-9]+$ ]] && [ "$np" -ge 1 ] && [ "$np" -le 65535 ]; then
-                        if grep -q '^\s*#\?\s*port\s*=' "$CONFIG_FILE"; then
+                        if grep -qE '^\s*#?\s*port\s*=' "$CONFIG_FILE"; then
                             sed -i.bak -E "s/^\s*#?\s*(port\s*=\s*)[0-9]+/\1$np/" "$CONFIG_FILE" && rm -f "${CONFIG_FILE}.bak"
                         else
                             echo -e "\nport = $np" >> "$CONFIG_FILE"
                         fi
-                        echo "端口修改为 $np。"
+                        echo "端口已在配置文件 ${CONFIG_FILE} 中修改为 $np。"
+                        echo "下次启动 clewdr 时将生效 (若不使用 cookies.txt 启动)。"
                     else
-                        echo "无效端口。"
+                        echo "输入无效，端口号必须是 1 到 65535 之间的数字。"
                     fi
                 fi
             fi
@@ -344,13 +343,13 @@ main_menu() {
             echo "启动 SillyTavern..."
             if [ -f "${SILLY_TAVERN_DIR}/server.js" ]; then
                 command -v node &>/dev/null || { echo "错误：缺少 node 命令。"; break; }
-                cd "$SILLY_TAVERN_DIR" && node server.js && cd "$SCRIPT_DIR"
+                cd "$SILLY_TAVERN_DIR" && node server.js && cd "$SCRIPT_DIR" || echo "启动 SillyTavern 失败。"
             else
-                echo "错误：SillyTavern 启动脚本不存在。"
+                echo "错误：SillyTavern 启动脚本 (${SILLY_TAVERN_DIR}/server.js) 不存在。"
             fi
             ;;
         8)
-            install_sillytavern || echo "SillyTavern 更新失败。"
+            install_sillytavern || echo "SillyTavern 安装/更新失败。"
             ;;
         0)
             echo "退出脚本。"
