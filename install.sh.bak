@@ -7,7 +7,22 @@ COOKIES_FILE="${SCRIPT_DIR}/cookies.txt"
 GITHUB_PROXY="https://ghfast.top"
 DOWNLOAD_BASE="https://github.com/Xerxes-2/clewdr/releases/latest/download"
 SILLY_TAVERN_DIR="${SCRIPT_DIR}/SillyTavern"
-SILLY_TAVERN_REPO="https://github.com/SillyTavern/SillyTavern"
+SILLY_TAVERN_REPO="https://github.com/SillyTavern/SillyTavern.git"
+
+if [ "$1" == "cookies.txt" ]; then
+    if [ ! -f "$COOKIES_FILE" ]; then
+        echo "错误：未找到 $COOKIES_FILE 文件。"
+        exit 1
+    fi
+    if [ -x "${TARGET_DIR}/clewdr" ]; then
+        echo "使用 $COOKIES_FILE 启动 clewdr..."
+        cd "$TARGET_DIR" && ./clewdr ../cookies.txt || echo "启动 clewdr 失败。"
+        cd "$SCRIPT_DIR"
+    else
+        echo "错误：未找到 clewdr 可执行文件。请先运行脚本进行安装或更新。"
+    fi
+    exit 0
+fi
 
 handle_error() {
     echo "错误：$2" >&2
@@ -38,40 +53,18 @@ get_proxy_choice() {
 
 detect_system() {
     local is_termux=false is_musl=false
-    USE_GLIBC_BINARY=false
-
     if [[ -n "$PREFIX" && "$PREFIX" == *"/com.termux"* ]]; then
         is_termux=true
         echo "检测到 Termux 环境。"
     elif command -v ldd >/dev/null 2>&1; then
         if ldd --version 2>&1 | grep -qi 'musl' || (command -v readelf &>/dev/null && readelf -l /bin/sh 2>/dev/null | grep -q 'musl'); then
             is_musl=true
-            echo "检测到原生 MUSL 环境。将使用 musl 二进制文件。"
+            echo "检测到 MUSL 环境。"
         else
             echo "检测到 glibc 环境。"
-            local detected_version required_version="2.38" glibc_major glibc_minor req_major req_minor
-            req_major=$(echo "$required_version" | cut -d. -f1)
-            req_minor=$(echo "$required_version" | cut -d. -f2)
-
-            detected_version=$(ldd --version 2>/dev/null | head -n 1 | grep -oE '[0-9]+\.[0-9]+' | head -n 1)
-
-            if [[ -n "$detected_version" ]] && [[ "$detected_version" =~ ^([0-9]+)\.([0-9]+)$ ]]; then
-                 glibc_major=${BASH_REMATCH[1]}
-                 glibc_minor=${BASH_REMATCH[2]}
-                 echo "检测到 glibc 版本: $detected_version"
-
-                 if (( glibc_major > req_major )) || { (( glibc_major == req_major )) && (( glibc_minor >= req_minor )); }; then
-                    echo "glibc 版本 ($detected_version) 大于或等于所需版本 ($required_version)。将使用 glibc 二进制文件。"
-                    USE_GLIBC_BINARY=true
-                 else
-                    echo "glibc 版本 ($detected_version) 低于所需版本 ($required_version)。将使用 musl 二进制文件。"
-                 fi
-            else
-                echo "警告：无法从 'ldd --version' 输出中准确解析 glibc 版本号。将使用 musl 二进制文件以保证兼容性。"
-            fi
         fi
     else
-        echo "警告：缺少 'ldd' 命令，无法检测 libc 类型或版本。将使用 musl 二进制文件以保证兼容性。"
+        echo "警告：无法检测 libc 类型，假定为 glibc。"
     fi
 
     local arch
@@ -84,9 +77,9 @@ detect_system() {
     esac
     echo "系统架构: $arch"
     $is_termux && [ "$arch" != "aarch64" ] && { handle_error 1 "Termux环境仅支持 aarch64"; return 1; }
-
     ARCH="$arch"
     TERMUX=$is_termux
+    MUSL=$is_musl
     return 0
 }
 
@@ -138,23 +131,19 @@ setup_download_url() {
 
     if $TERMUX; then
         FILENAME="clewdr-android-${ARCH}.zip"
-        echo "为 Termux 环境选择 Android 版本。"
-    elif [ "$USE_GLIBC_BINARY" = true ]; then
-        FILENAME="clewdr-linux-${ARCH}.zip"
-        echo "检测到 glibc 版本 >= 2.38，选择 glibc 版本。"
-    else
+    elif $MUSL; then
         FILENAME="clewdr-musllinux-${ARCH}.zip"
-        if [ "$MUSL" = true ]; then
-             echo "检测到原生 musl 环境，选择 musl 版本。"
-        elif [ -z "$(command -v ldd)" ]; then
-             echo "无法找到 ldd 命令，为保证兼容性选择 musl 版本。"
-        elif ! grep -qE '[0-9]+\.[0-9]+' <<<"$(ldd --version 2>/dev/null)"; then
-             echo "无法确定 glibc 版本，为保证兼容性选择 musl 版本。"
+    else
+        echo "请选择二进制文件类型："
+        echo "  1) glibc 版本"
+        echo "  2) musl 版本"
+        read -rp "输入选项 [1-2] (默认 1): " choice
+        if [ "${choice:-1}" -eq 2 ]; then
+            FILENAME="clewdr-musllinux-${ARCH}.zip"
         else
-             echo "检测到 glibc 版本低于 2.38，选择 musl 版本。"
+            FILENAME="clewdr-linux-${ARCH}.zip"
         fi
     fi
-
     [ -z "$FILENAME" ] && { handle_error 1 "无法确定下载文件名"; return 1; }
     echo "下载文件名: $FILENAME"
     return 0
