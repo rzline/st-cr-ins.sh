@@ -1,5 +1,7 @@
 # 酒馆+ClewdR一键脚本
 
+# 因上游更新，除安装功能外均不再维护（现在应该还能用），去用GUI吧。
+
 - [ClewdR](https://github.com/Xerxes-2/clewdr)
 - [SillyTavern](https://github.com/SillyTavern/SillyTavern)
 
@@ -16,7 +18,7 @@ curl -O -C - https://raw.githubusercontent.com/rzline/st-cr-ins.sh/main/install.
 ```
 ```
 #中国大陆特供版
-curl -O -C - https://ghfast.top/https://raw.githubusercontent.com/rzline/st-cr-ins.sh/main/install.sh &&chmod +x install.sh &&./install.sh &&rm install.sh
+curl -O -C - https://ghfast.top/https://raw.githubusercontent.com/rzline/st-cr-ins.sh/main/install.sh &&chmod +x install.sh &&./install.sh
 ```
 
 - 把这行命令扔你终端就行，够傻瓜了吧
