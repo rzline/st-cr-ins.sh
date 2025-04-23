@@ -1,9 +1,8 @@
 #!/bin/bash
 
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
-TARGET_DIR="${SCRIPT_DIR}/clewdr"
-CONFIG_FILE="${TARGET_DIR}/config.toml"
-COOKIES_FILE="${SCRIPT_DIR}/cookies.txt"
+CONFIG_FILE="${SCRIPT_DIR}/clewdr/clewdr.toml"
+COOKIES_FILE="${SCRIPT_DIR}/clewdr/cookies.txt"
 GITHUB_PROXY="https://ghfast.top"
 DOWNLOAD_BASE="https://github.com/Xerxes-2/clewdr/releases/latest/download"
 SILLY_TAVERN_DIR="${SCRIPT_DIR}/SillyTavern"
@@ -92,8 +91,8 @@ detect_system() {
 
 check_version() {
     local local_ver=""
-    if [ -x "${TARGET_DIR}/clewdr" ]; then
-        local_ver=$("${TARGET_DIR}/clewdr" -V 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+    if [ -x "${SCRIPT_DIR}/clewdr/clewdr" ]; then
+        local_ver=$("${SCRIPT_DIR}/clewdr/clewdr" -V 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
         echo "当前已安装的 clewdr 版本：$local_ver"
     else
         echo "未检测到 clewdr，视为首次安装。"
@@ -164,9 +163,9 @@ download_and_install() {
     [ -z "$URL_PREFIX" ] && { handle_error 1 "下载 URL 前缀未配置"; return 1; }
     [ -z "$FILENAME" ] && { handle_error 1 "下载文件名未配置"; return 1; }
 
-    mkdir -p "$TARGET_DIR" || { handle_error 1 "创建目标目录失败: ${TARGET_DIR}"; return 1; }
+    mkdir -p "$SCRIPT_DIR/clewdr" || { handle_error 1 "创建目标目录失败: ${SCRIPT_DIR}/clewdr"; return 1; }
     local download_url="${URL_PREFIX}/${FILENAME}"
-    local download_path="${TARGET_DIR}/${FILENAME}"
+    local download_path="${SCRIPT_DIR}/clewdr/${FILENAME}"
     echo "下载地址: $download_url"
     echo "保存到: $download_path"
 
@@ -181,7 +180,7 @@ download_and_install() {
     done
     [ $count -eq $max ] && { handle_error 1 "下载失败"; return 1; }
 
-    if unzip -oq "$download_path" -d "$TARGET_DIR"; then
+    if unzip -oq "$download_path" -d "$SCRIPT_DIR/clewdr"; then
         rm -f "$download_path"
         echo "解压成功。"
     else
@@ -189,8 +188,8 @@ download_and_install() {
         handle_error 1 "解压失败"; return 1
     fi
 
-    [ -f "${TARGET_DIR}/clewdr" ] && chmod +x "${TARGET_DIR}/clewdr" || echo "警告：找不到 clewdr 可执行文件"
-    echo "clewdr 安装/更新完成于目录：$TARGET_DIR"
+    [ -f "${SCRIPT_DIR}/clewdr/clewdr" ] && chmod +x "${SCRIPT_DIR}/clewdr/clewdr" || echo "警告：找不到 clewdr 可执行文件"
+    echo "clewdr 安装/更新完成于目录：$SCRIPT_DIR/clewdr"
 }
 
 install_sillytavern() {
@@ -233,8 +232,8 @@ install_sillytavern() {
 
 main_menu() {
     local local_ver="未安装"
-    if [ -x "${TARGET_DIR}/clewdr" ]; then
-        local_ver=$("${TARGET_DIR}/clewdr" -V 2>/dev/null | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')
+    if [ -x "${SCRIPT_DIR}/clewdr/clewdr" ]; then
+        local_ver=$("${SCRIPT_DIR}/clewdr/clewdr" -V 2>/dev/null | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')
     fi
 
     local st_status="未安装"
@@ -266,8 +265,8 @@ main_menu() {
     case $opt in
         1)
             echo "启动 ClewdR (默认配置)..."
-            if [ -x "${TARGET_DIR}/clewdr" ]; then
-                cd "$TARGET_DIR" && ./clewdr && cd "$SCRIPT_DIR" || echo "启动 clewdr 失败。"
+            if [ -x "${SCRIPT_DIR}/clewdr/clewdr" ]; then
+                cd "$SCRIPT_DIR/clewdr" && ./clewdr && cd "$SCRIPT_DIR" || echo "启动 clewdr 失败。"
             else
                 echo "错误：未找到可执行文件，请先安装更新。"
             fi
@@ -312,18 +311,18 @@ main_menu() {
             echo "-----------------------------------------"
             echo "共缓存 $count 个有效 Cookie 到 $COOKIES_FILE"
 
-            if [ -x "${TARGET_DIR}/clewdr" ]; then
+            if [ -x "${SCRIPT_DIR}/clewdr/clewdr" ]; then
                 if [ -s "$COOKIES_FILE" ]; then
                     echo "现在尝试使用 $COOKIES_FILE 启动 clewdr..."
                     echo "clewdr 会读取此文件并自动处理配置。"
-                    cd "$TARGET_DIR" && ./clewdr ../cookies.txt && cd "$SCRIPT_DIR" || echo "启动 clewdr 失败。"
+                    cd "$SCRIPT_DIR/clewdr" && ./clewdr -f cookies.txt && cd "$SCRIPT_DIR" || echo "启动 clewdr 失败。"
                 else
                     echo "未缓存任何有效 Cookie，未启动 clewdr。"
                     rm -f "$COOKIES_FILE"
                 fi
             else
                 echo "错误：未找到 clewdr 可执行文件。Cookie 已保存至 $COOKIES_FILE，请先安装或更新 clewdr 后手动执行："
-                echo "cd ${TARGET_DIR} && ./clewdr ../cookies.txt"
+                echo "cd ${SCRIPT_DIR}/clewdr && ./clewdr -f cookies.txt"
             fi
             ;;
         6)

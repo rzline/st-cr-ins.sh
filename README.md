@@ -12,6 +12,11 @@
 apt update &&apt install curl unzip git nodejs -y
 ```
 
+```
+#termux用户请额外执行
+pkg upgrade
+```
+
 运行命令
 ```
 curl -O -C - https://raw.githubusercontent.com/rzline/st-cr-ins.sh/main/install.sh &&chmod +x install.sh &&./install.sh
@@ -24,6 +29,9 @@ curl -O -C - https://ghfast.top/https://raw.githubusercontent.com/rzline/st-cr-i
 - 把这行命令扔你终端就行，够傻瓜了吧
 
 ## 更新日志
+
+### 25.4.24
+1. 对接上游配置文件修改，这应该是真的是最后一次更新了（）
 
 ### 25.4.11
 1. 修复添加cookie功能
