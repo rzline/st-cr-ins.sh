@@ -28,6 +28,11 @@ curl -O -C - https://ghfast.top/https://raw.githubusercontent.com/rzline/st-cr-i
 
 ## 更新日志
 
+### 25.6.16
+1. 重构逻辑，大幅度精简代码
+2. 新增filebrowser的安装、版本检测和启动功能（感谢[𝟰𝟬𝟰 𝑛𝑦𝑎𝐹𝑜𝑢𝑛𝑑](https://github.com/404nyaFound)）
+3. 对操作界面进行了简单的美化
+
 ### 25.4.24
 1. 对接上游配置文件修改，这应该是真的是最后一次更新了（）
 
