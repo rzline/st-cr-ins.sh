@@ -7,7 +7,7 @@
 
 依赖安装
 ```
-apt update &&apt install curl unzip git nodejs -y
+apt update &&apt install curl unzip git nodejs jq -y
 ```
 
 ```

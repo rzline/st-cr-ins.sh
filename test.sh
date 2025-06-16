@@ -7,6 +7,7 @@ ST_DIR="$DIR/SillyTavern"
 SERVICE="/etc/systemd/system/clewdr.service"
 PROXY="https://ghfast.top"
 DL_BASE="https://github.com/Xerxes-2/clewdr/releases/latest/download"
+FB_DIR="$DIR/filebrowser"
 
 err() { echo "错误: $1" >&2; exit "${2:-1}"; }
 
@@ -51,6 +52,16 @@ get_local_ver() {
 
 get_st_ver() {
     [ -f "$ST_DIR/package.json" ] && jq -r .version "$ST_DIR/package.json" || echo "未安装"
+}
+
+get_fb_ver() {
+    if command -v filebrowser >/dev/null 2>&1; then
+        local version_output=$(filebrowser version 2>&1)
+        local version=$(echo "$version_output" | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -n1)
+        [ -n "$version" ] && echo "${version#v}" || echo "版本获取失败"
+    else
+        echo "未安装"
+    fi
 }
 
 install_clewdr() {
@@ -111,17 +122,39 @@ EOF
     echo "服务已创建，可使用systemctl管理clewdr服务"
 }
 
+install_filebrowser() {
+    echo "正在安装 filebrowser..."
+    if ! curl -fsSL https://raw.githubusercontent.com/filebrowser/get/master/get.sh | bash; then
+        handle_error 1 "filebrowser 安装脚本执行失败。"
+        return 1
+    fi
+    chmod +x "$FB_DIR"
+    echo "filebrowser 安装成功: $FB_DIR"
+}
+
+start_filebrowser() {
+    echo -e "\e]0;Filebrowser\a"
+    echo "访问地址: http://<127.0.0.1或服务器IP>:8080"
+    echo "初始用户名: admin"
+    echo "初始密码: admin"
+    "filebrowser" -a 0.0.0.0 -p 8080
+}
+
+
 main_menu() {
     CLEWDR_VER=$(get_local_ver "$CLEWDR_DIR/clewdr")
     CLEWDR_LATEST=$(get_latest_ver "Xerxes-2/clewdr")
     ST_VER=$(get_st_ver)
     ST_LATEST=$(get_latest_ver "SillyTavern/SillyTavern")
+    FB_VER=$(get_fb_ver)
+    FB_LATEST=$(get_latest_ver "filebrowser/filebrowser")
 
     while true; do
         clear
         echo "====== ClewdR & SillyTavern 管理 ======"
         echo "ClewdR 当前版本: $CLEWDR_VER | 最新版: $CLEWDR_LATEST"
         echo "SillyTavern 当前版本: $ST_VER | 最新版: $ST_LATEST"
+        echo "FileBrowser 当前版本: $FB_VER | 最新版: $FB_LATEST"
         echo "---------------------------------------"
         echo "1) 安装/更新 ClewdR"
         echo "2) 启动 ClewdR"
@@ -132,17 +165,23 @@ main_menu() {
         echo ""
         echo "7) 安装/更新 SillyTavern"
         echo "8) 启动 SillyTavern"
+        echo ""
+        echo "9) 安装/更新 FileBrowser"
+        echo "10) 启动 FileBrowser"
+        echo ""
         echo "0) 退出"
         read -rp "选择操作: " opt
         case "$opt" in
             1) check_deps; install_clewdr;;
-            2) "$CLEWDR_DIR/clewdr";;
+            2) echo -e "\e]0;ClewdR\a";"$CLEWDR_DIR/clewdr";;
             3) edit_config;;
             4) set_public_ip;;
             5) set_port;;
             6) create_service;;
             7) check_deps; install_st;;
             8) (cd "$ST_DIR"; node server.js);;
+            9) install_filebrowser;;
+            10) start_filebrowser;;
             0) exit;;
             *) echo "无效选项";;
         esac
