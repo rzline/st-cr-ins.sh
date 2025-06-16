@@ -23,25 +23,22 @@ use_proxy() {
 }
 
 detect_arch_libc() {
+    # Termux 专用分支
     if [[ "$PREFIX" == *"/com.termux"* ]]; then
-        echo "检测到Termux环境，自动选择aarch64架构。"
+        echo "检测到 Termux 环境"
         ARCH="aarch64"
         LIBC="android"
         return
     fi
 
     case "$(uname -m)" in
-        x86_64|amd64) ARCH="x86_64";;
-        aarch64|arm64) ARCH="aarch64";;
-        *) err "不支持的架构";;
+        x86_64|amd64)  ARCH="x86_64" ;;
+        aarch64|arm64) ARCH="aarch64" ;;
+        *) err "不支持的架构：$(uname -m)" ;;
     esac
 
-    if command -v ldd &>/dev/null && ldd --version | grep -qi 'glibc'; then
-        GLIBC_VER=$(ldd --version | head -1 | grep -o '[0-9]\+\.[0-9]\+')
-        [[ $(echo "$GLIBC_VER >= 2.38" | bc) -eq 1 ]] && LIBC="linux" || LIBC="musllinux"
-    else
-        LIBC="musllinux"
-    fi
+    LIBC="musllinux"
+    echo "检测到常规 Linux 环境"
 }
 
 get_latest_ver() {
@@ -58,15 +55,15 @@ get_st_ver() {
 
 install_clewdr() {
     detect_arch_libc
-    local proxy=$(use_proxy && echo "$PROXY" || echo "")
+    local proxy=$(use_proxy && echo "$PROXY")
     local file="clewdr-${LIBC}-${ARCH}.zip"
     local url="${proxy}${DL_BASE}/$file"
     mkdir -p "$CLEWDR_DIR"
-    curl -fL "$url" -o "$CLEWDR_DIR/$file" || err "下载失败"
+    curl -fL "$url" -o "$CLEWDR_DIR/$file" || err "下载失败：$url"
     unzip -oq "$CLEWDR_DIR/$file" -d "$CLEWDR_DIR" || err "解压失败"
     chmod +x "$CLEWDR_DIR/clewdr"
     rm -f "$CLEWDR_DIR/$file"
-    echo "ClewdR安装完成"
+    echo "ClewdR 安装/更新完成（${ARCH}/${LIBC}）"
 }
 
 install_st() {

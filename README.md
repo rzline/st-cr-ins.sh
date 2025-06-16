@@ -1,7 +1,5 @@
 # 酒馆+ClewdR一键脚本
 
-# 因上游更新，除安装功能外均不再维护（现在应该还能用），去用GUI吧。
-
 - [ClewdR](https://github.com/Xerxes-2/clewdr)
 - [SillyTavern](https://github.com/SillyTavern/SillyTavern)
 
