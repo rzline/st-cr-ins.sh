@@ -7,26 +7,23 @@
 
 依赖安装
 ```
-apt update &&apt install curl unzip git nodejs jq -y
+#termux先执行
+pkg update &&pkg upgrade
+
+apt install curl unzip git nodejs jq -y
 ```
 
-```
-#termux用户请额外执行
-pkg upgrade
-```
 
 运行命令
 ```
-curl -O -C - https://raw.githubusercontent.com/rzline/st-cr-ins.sh/main/install.sh &&chmod +x install.sh &&./install.sh
-```
-```
-#中国大陆特供版
-curl -O -C - https://ghfast.top/https://raw.githubusercontent.com/rzline/st-cr-ins.sh/main/install.sh &&chmod +x install.sh &&./install.sh
+curl -O https://raw.githubusercontent.com/rzline/st-cr-ins.sh/main/install.sh &&bash install.sh
 ```
 
 - 把这行命令扔你终端就行，够傻瓜了吧
 
 ## 更新日志
+### 25.8.17
+1. 我更新了，但我懒得写，摸了
 
 ### 25.6.16
 1. 重构逻辑，大幅度精简代码
